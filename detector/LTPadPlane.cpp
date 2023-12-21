@@ -118,7 +118,7 @@ Int_t LTPadPlane::FindChannelID(Int_t section, Int_t row, Int_t layer)
 TCanvas* LTPadPlane::GetCanvas(Option_t *option)
 {
     if (fCanvas==nullptr) {
-        fCanvas = LKWindowManager::GetWindowManager() -> CanvasResize("LTPadPlane","LTPadPlane",1100,700,0.9);
+        fCanvas = LKWindowManager::GetWindowManager() -> CanvasResize("LTPadPlane",1100,700,0.9);
         auto pad1 = new TPad("pad1","",0,230./700,0.5,1);
         pad1 -> SetMargin(0.12,0.15,0.1,0.1);
         pad1 -> SetNumber(1);
@@ -400,8 +400,9 @@ void LTPadPlane::Draw(Option_t *option)
     auto cvs = GetCanvas();
 
     cvs -> cd(1);
-    if (fHistPadPlane->GetEntries()==0)
+    if (fHistPadPlane->GetEntries()==0) {
         fHistPadPlaneFrame -> Draw();
+    }
     else {
         fHistPadPlaneFrame -> Draw();
         fHistPadPlane -> SetMinimum(0.1);
