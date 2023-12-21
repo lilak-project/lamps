@@ -1,0 +1,12 @@
+hostname e{lilak_hostuser}
+
+#common_data_path                 /Users/ejungwoo/data/texat
+@bell.ejungwoo/common_data_path                 /home/ejungwoo/data/texat
+@mary.lan.ejungwoo/common_data_path             /Users/ejungwoo/data/texat
+@mary.local.ejungwoo/common_data_path           /Users/ejungwoo/data/texat
+@CENS-ALPHA-00.cens-alpha-00/common_data_path   /home/cens-alpha-00/data/texat
+raw_data_path  {common_data_path}/conv
+reco_data_path {common_data_path}/reco
+
+#################################################################################################
+LTPadPlane/position_map     /home/cens-alpha-00/lilak/lamps/common/LAMPS_TPC_PAD_info_11

@@ -1,0 +1,33 @@
+data   /home/cens-alpha-00/data/lamps/run_0123.dat.14-12-23_14h29m55s.mfm
+run    0
+split  0
+size   0
+
+*LKRun/RunName lamps {run} {split}.all
+
+#################################################################################################
+
+<config_common config_common.mac
+
+#################################################################################################
+*LKRun/RunName texat {run} {split}.all
+*LKRun/DataPath data #{reco_data_path}
+
+#################################################################################################
+LKMFMConversionTask/
+    RunMode         1       # MFMHistServer configfile mode (mode=0 for reading mfm and plot, mode=1 for mfm2rootwf, mode=2 for reading rootwf, mode=3 for rootwf2rootet and mode=4 for reading rootet)
+    ReadType        1       # 0:online, 1:offline with mfm file, 3: offline with list file, 11: offline with exptname and run number
+    ConverterPort   9998    # needed for mfm2rootwf
+    BucketSize      512     # Time bucket size
+    ScalerMode      0       # to print out scaler data more often
+    2pMode          0       # reading data for 2p mode
+    UpdateFast      0       # save root tree more often in case of slow event rate
+    InputFileName   {data}
+
+#################################################################################################
+TTHTTrackingTask/use_transform_with_chain_strip_combination false
+
+#################################################################################################
+persistency/
+    RawData     true
+    FrameHeader true
