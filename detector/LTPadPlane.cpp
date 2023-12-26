@@ -302,6 +302,8 @@ bool LTPadPlane::Init()
         }
     }
 
+    SetDataFromBranch();
+
     return true;
 }
 
@@ -594,64 +596,102 @@ bool LTPadPlane::SetDataFromBranch()
     if (fRun==nullptr)
         return false;
     fBufferArray = fRun -> GetBranchA("RawData");
+    fHitArray = fRun -> GetBranchA("Hit");
     return true;
 }
 
 void LTPadPlane::FillDataToHist()
 {
-    if (fBufferArray==nullptr)
-        return;
+    lk_info << endl;
+    if (fPar -> CheckPar("eve/planeFillType")) {
+        fFillType = fPar -> GetParString("eve/planeFillType");
+        if (fFillType!="Hit" || fFillType!="Buffer") {
+            lk_warning << "eve/planeFillType must be Buffer or Hit" << endl;
+            if (fBufferArray!=nullptr) fFillType = "Buffer";
+            else if (fHitArray!=nullptr) fFillType = "Hit";
+        }
+    }
 
-    fHistPadPlane -> Reset("ICES");
-    fHistSideView -> Reset("ICES");
-    for (auto section=0; section<8; ++section)
-        fHistPadPlaneSection[section] -> Reset("ICES");
-
-    auto numChannels = fBufferArray -> GetEntries();
-    lk_info << "# of channels: " << numChannels << endl;
-
-    for (auto iChannel=0; iChannel<numChannels; ++iChannel)
+    if (fFillType=="Buffer")
     {
-        auto channel = (GETChannel*) fBufferArray -> At(iChannel);
-        auto hbin = channel -> GetChan2();
-        if (hbin<0) {
-            auto cobo = channel -> GetCobo();
-            auto asad = channel -> GetAsad();
-            auto aget = channel -> GetAget();
-            auto chan = channel -> GetChan();
-            auto hbin = FindPadID(cobo,aget,asad,chan);
+        if (fBufferArray==nullptr) {
+            lk_error << "Fill type is " << fFillType << " but buffer array is null!" << endl;
+            return;
         }
-        if (hbin<0)
-            continue;
-        auto charge = channel -> GetEnergy();
-        if (charge<=0) {
-            charge = 0;
-            auto buffer = channel -> GetWaveformY();
-            for (auto i=0; i<512; ++i)
-                charge += buffer[i];
+
+        fHistPadPlane -> Reset("ICES");
+        fHistSideView -> Reset("ICES");
+        for (auto section=0; section<8; ++section)
+            fHistPadPlaneSection[section] -> Reset("ICES");
+
+        auto numChannels = fBufferArray -> GetEntries();
+        lk_info << "# of channels: " << numChannels << endl;
+        for (auto iChannel=0; iChannel<numChannels; ++iChannel)
+        {
+            auto channel = (GETChannel*) fBufferArray -> At(iChannel);
+            auto padID = channel -> GetChan2();
+            if (padID<0) {
+                auto cobo = channel -> GetCobo();
+                auto asad = channel -> GetAsad();
+                auto aget = channel -> GetAget();
+                auto chan = channel -> GetChan();
+                padID = FindPadID(cobo,aget,asad,chan);
+            }
+            if (padID<0) {
+                lk_debug << padID << endl;
+                continue;
+            }
+            auto charge = channel -> GetEnergy();
+            int max[3] = {0};
+            int bin[3] = {0};
+            if (charge<=0) {
+                charge = 0;
+                auto buffer = channel -> GetWaveformY();
+                for (auto i=0; i<512; ++i) {
+                    auto value = buffer[i];
+                    charge += value;
+                         if (max[0]<value) { max[0] = value; bin[0] = i; }
+                    else if (max[1]<value) { max[1] = value; bin[1] = i; }
+                    else if (max[2]<value) { max[2] = value; bin[2] = i; }
+                }
+            }
+            lk_debug << padID << " " << charge << " " << max[0] << " " << max[1] << " " << max[2] << endl;
+            if (charge<0)
+                continue;
+            auto pad = LKPadPlane::GetPad(padID);
+            auto x = pad -> GetX();
+            auto y = pad -> GetY();
+            auto section = pad -> GetSection();
+            auto hbin = padID+5;
+            //fHistPadPlane -> //SetBinContent(hbin,charge);
+            fHistPadPlane -> Fill(x,y,charge);
+            fHistPadPlaneSection[section] -> Fill(x,y,charge);
+            //fHistSideView -> Fill(z,y,charge);
         }
-        lk_debug << hbin << " " << charge << endl;
-        if (charge<0)
-            continue;
-        fHistPadPlane -> SetBinContent(hbin,charge);
+    }
+    else if (fFillType=="Hit")
+    {
+        if (fHitArray==nullptr) {
+            lk_error << "Fill type is " << fFillType << " but hit array is null!" << endl;
+            return;
+        }
     }
 }
 
 void LTPadPlane::Draw(Option_t *option)
 {
-    SetDataFromBranch();
+    CreateHistograms();
     FillDataToHist();
 
     auto cvs = GetCanvas();
-    CreateHistograms();
 
     cvs -> cd(1);
     if (fHistPadPlane->GetEntries()==0)
         fFramePadPlane -> Draw();
     else {
         fFramePadPlane -> Draw();
-        //fHistPadPlane -> SetMinimum(0.1);
-        //fHistPadPlane -> Draw("same colz");
+        fHistPadPlane -> SetMinimum(0.1);
+        fHistPadPlane -> Draw("same colz");
     }
 
     cvs -> cd(2);

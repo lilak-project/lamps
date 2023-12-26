@@ -160,7 +160,9 @@ class LTPadPlane : public LKPadPlane
         TGraph* fGraphSectionBoundary = nullptr;
 
         TClonesArray* fBufferArray = nullptr;
-        TClonesArray* fHitCenterArray = nullptr;
+        TClonesArray* fHitArray = nullptr;
+
+        TString fFillType = "Buffer";
 
     public:
         double GetPadCutBoundaryYAtX(double x) { return fTanPi3o8*x; }
