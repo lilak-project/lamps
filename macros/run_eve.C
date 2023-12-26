@@ -1,4 +1,5 @@
-void next() { LKRun::GetRun() -> RunSelectedEvent("EventHeader[0].IsGoodEvent()"); }
+//void next() { LKRun::GetRun() -> RunSelectedEvent("EventHeader[0].IsGoodEvent()"); }
+void next() { LKRun::GetRun() -> ExecuteNextEvent(); }
 
 void run_eve()
 {
@@ -13,6 +14,6 @@ void run_eve()
     run -> Add(new LKEveTask);
     run -> Init();
 
-    LKWindowManager::GetWindowManager() -> FixCanvasPosition();
-    next();
+    //LKWindowManager::GetWindowManager() -> FixCanvasPosition();
+    //next();
 }

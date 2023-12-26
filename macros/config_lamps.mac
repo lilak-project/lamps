@@ -7,25 +7,21 @@ size   0
 
 #################################################################################################
 
-<config_common config_common.mac
+hostname e{lilak_hostuser}
+
+@bell.ejungwoo/common_data_path                 /home/ejungwoo/data/lamps
+@mary.lan.ejungwoo/common_data_path             /Users/ejungwoo/data/lamps
+@mary.local.ejungwoo/common_data_path           /Users/ejungwoo/data/lamps
+@CENS-ALPHA-00.cens-alpha-00/common_data_path   /home/cens-alpha-00/data/lamps
+raw_data_path  {common_data_path}/conv
+reco_data_path {common_data_path}/reco
 
 #################################################################################################
-*LKRun/RunName texat {run} {split}.all
+LTPadPlane/position_map     /Users/ejungwoo/lilak/lamps_2023/common/LAMPS_TPC_PAD_info_11_lilak
+
+#################################################################################################
+*LKRun/RunName lamps {run} {split}
 *LKRun/DataPath data #{reco_data_path}
-
-#################################################################################################
-LKMFMConversionTask/
-    RunMode         1       # MFMHistServer configfile mode (mode=0 for reading mfm and plot, mode=1 for mfm2rootwf, mode=2 for reading rootwf, mode=3 for rootwf2rootet and mode=4 for reading rootet)
-    ReadType        1       # 0:online, 1:offline with mfm file, 3: offline with list file, 11: offline with exptname and run number
-    ConverterPort   9998    # needed for mfm2rootwf
-    BucketSize      512     # Time bucket size
-    ScalerMode      0       # to print out scaler data more often
-    2pMode          0       # reading data for 2p mode
-    UpdateFast      0       # save root tree more often in case of slow event rate
-    InputFileName   {data}
-
-#################################################################################################
-TTHTTrackingTask/use_transform_with_chain_strip_combination false
 
 #################################################################################################
 persistency/
