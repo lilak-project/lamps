@@ -27,3 +27,6 @@ LTPadPlane/position_map     /Users/ejungwoo/lilak/lamps_2023/common/LAMPS_TPC_PA
 persistency/
     RawData     true
     FrameHeader true
+
+LKEveTask/drawEve3D false
+#LKEveTask/drawPlane

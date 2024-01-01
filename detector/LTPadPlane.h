@@ -42,7 +42,7 @@ class LTPadPlane : public LKPadPlane
         static void MouseClickEvent2();
 
         void ZoomInWindow(Int_t bin, Double_t x, Double_t y);
-        void SelectAndDrawChannel(int bin);
+        void SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y);
 
     //public: // LKDetectorPlane
         //virtual void Clear(Option_t *option = "");
@@ -130,6 +130,10 @@ class LTPadPlane : public LKPadPlane
         Double_t fRTopCut = fRMax;
         Int_t fNumLayers = 42;
 
+        Int_t fNumTbs = 512;
+        Int_t fMaxWaveformY = 4100;
+
+        Int_t fBinNumberTopView;
         Int_t fBinNumberSideView;
 
         Double_t fTanPi1o8;
@@ -151,18 +155,30 @@ class LTPadPlane : public LKPadPlane
 
         int ****fMapCAACToPadID;
 
+        int fSelectedSection = 0;
+
         TH2Poly* fHistPadPlaneSection[8];
         TH2Poly* fFramePadPlane = nullptr;
         TH2Poly* fHistPadPlane = nullptr;
+        //TGraph* fFrameSideView = nullptr;
+        TH2D* fHistWaveform = nullptr;
+        TH2D* fHistTopView = nullptr;
         TH2D* fHistSideView = nullptr;
         TH1D* fHistChannel1 = nullptr;
         TH1D* fHistChannel2 = nullptr;
-        TGraph* fGraphSectionBoundary = nullptr;
+        TGraph* fGraphSectionBoundary1 = nullptr;
+        TGraph* fGraphSectionBoundary2 = nullptr;
+        TGraph* fGraphPadBoundary = nullptr;
+
+        bool fUseChannel1 = true;
 
         TClonesArray* fBufferArray = nullptr;
         TClonesArray* fHitArray = nullptr;
 
         TString fFillType = "Buffer";
+
+        int ConvHP(int bin) { return bin-1; }
+        int ConvPH(int bin) { return bin+1; }
 
     public:
         double GetPadCutBoundaryYAtX(double x) { return fTanPi3o8*x; }
