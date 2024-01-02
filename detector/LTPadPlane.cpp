@@ -53,18 +53,22 @@ bool LTPadPlane::Init()
         fSinPiNo4[i] = TMath::Sin(TMath::Pi()*i/4.);
     }
 
-    for (auto section=0; section<8; ++section) {
-
-        Double_t x1 = -208;
-        Double_t x2 = 208;
-        Double_t x3 = -38;
-        Double_t x4 = 38;
-        Double_t y1 = 100;
-        Double_t y2 = 510;
-        TVector2 sectionCorner1(x1, y2);
-        TVector2 sectionCorner2(x3, y1);
-        TVector2 sectionCorner3(x4, y1);
-        TVector2 sectionCorner4(x2, y2);
+    for (auto section=0; section<8; ++section)
+    {
+        Double_t r1 = fRMin-10;
+        Double_t r2 = 560;
+        Double_t x1 = -r2/sqrt(1+fTanPi3o8*fTanPi3o8);
+        Double_t x2 = -r1/sqrt(1+fTanPi3o8*fTanPi3o8);
+        Double_t x3 = -x2;
+        Double_t x4 = -x1;
+        Double_t y1 = -fTanPi3o8*x1;
+        Double_t y2 = -fTanPi3o8*x2;
+        Double_t y3 = +fTanPi3o8*x3;
+        Double_t y4 = +fTanPi3o8*x4;
+        TVector2 sectionCorner1(x1, y1);
+        TVector2 sectionCorner2(x2, y2);
+        TVector2 sectionCorner3(x3, y3);
+        TVector2 sectionCorner4(x4, y4);
 
         Double_t phiSection = section * TMath::Pi()/4.;
         fPosSectionCorner[section][0] = sectionCorner1.Rotate(phiSection);
@@ -75,6 +79,13 @@ bool LTPadPlane::Init()
 
     Double_t xCorner[5] = {0};
     Double_t yCorner[5] = {0};
+
+    for (auto layer=0; layer<fNumLayers; ++layer)
+        fStartRowFrom[layer] = 1;
+    fStartRowFrom[41] = 55;
+    fStartRowFrom[40] = 46;
+    fStartRowFrom[39] = 35;
+    fStartRowFrom[38] = 17;
 
     for (int layer=0; layer<fNumLayers; ++layer)
     {
@@ -96,10 +107,10 @@ bool LTPadPlane::Init()
             double yPad = sqrt(radius*radius - xPad*xPad);
 
             bool continueRow = false;
-            if (layer==41&&iRow<55) continueRow = true;
-            if (layer==40&&iRow<46) continueRow = true;
-            if (layer==39&&iRow<35) continueRow = true;
-            if (layer==38&&iRow<17) continueRow = true;
+            if (layer==41&&iRow<fStartRowFrom[41]) continueRow = true;
+            if (layer==40&&iRow<fStartRowFrom[40]) continueRow = true;
+            if (layer==39&&iRow<fStartRowFrom[39]) continueRow = true;
+            if (layer==38&&iRow<fStartRowFrom[38]) continueRow = true;
             //if (yPad-fPadHeight*0.3 > fRTopCut) continueRow = true;
 
             if (continueRow) {
@@ -113,7 +124,8 @@ bool LTPadPlane::Init()
                 row++;
             }
 
-            if (yPad < GetPadCenterYBoundAtX(xPad))
+            if (row>=fNumHalfRowsInLayerInput[layer])
+            //if (yPad < GetPadCenterYBoundAtX(xPad))
             {
                 fNumHalfRowsInLayer[layer] = row;
                 isInnerPad = false;
@@ -139,7 +151,8 @@ bool LTPadPlane::Init()
 
             bool sideBoundaryCutWasMade = false;
 
-            if (fDoCutSideBoundary && (yCorner[3] < GetPadCutBoundaryYAtX(xCorner[3]))) {
+            if (fDoCutSideBoundary && (yCorner[3] < GetPadCutBoundaryYAtX(xCorner[3])))
+            {
                 sideBoundaryCutWasMade = true;
                 if (xCorner[0] > GetPadCutBoundaryXAtR(radius2)) {
                     xCorner[0] = GetPadCutBoundaryXAtR(radius2);
@@ -152,13 +165,26 @@ bool LTPadPlane::Init()
                 }
                 else if (yCorner[3] < GetPadCutBoundaryYAtX(xCorner[3])) {
                     xCorner[3] = GetPadCutBoundaryXAtR(radius1);
-                    yCorner[3] = fTanPi3o8*xCorner[3];
-                    xCorner[4] = xCorner[0];
-                    yCorner[4] = GetPadCutBoundaryYAtX(xCorner[4]);
-                    numCorners = 5;
+                    yCorner[3] = GetPadCutBoundaryYAtX(xCorner[3]);
+                    if (row==fNumHalfRowsInLayerInput[layer]) {
+                        xCorner[0] = GetPadCutBoundaryXAtR(radius2);
+                        yCorner[0] = GetPadCutBoundaryYAtX(xCorner[0]);
+                    }
+                    else {
+                        xCorner[4] = xCorner[0];
+                        yCorner[4] = GetPadCutBoundaryYAtX(xCorner[4]);
+                        numCorners = 5;
+                    }
                 }
             }
-            if (fDoCutTopBoundary && yCorner[0] > fRTopCut) {
+            if (fDoCutTopBoundary && yCorner[0] > fRTopCut)
+            {
+                yCorner[0] = fRTopCut;
+                yCorner[1] = fRTopCut;
+            }
+
+            if (layer<fNumLayers-1 && fStartRowFrom[layer+1]>iRow)
+            {
                 yCorner[0] = fRTopCut;
                 yCorner[1] = fRTopCut;
             }
@@ -223,6 +249,8 @@ bool LTPadPlane::Init()
                     padAtPreviousRow[section][iRL] = padAtCurrentRow[section][iRL];
         }
     }
+
+    //for (auto layer=0; layer<fNumLayers; ++layer) lk_debug << layer << " " << fNumHalfRowsInLayer[layer] << endl;
 
     for (auto iLayer=fNumLayers-1; iLayer>=0; --iLayer) {
         fNumPadsDownToLayer[iLayer] = 2*fNumHalfRowsInLayer[iLayer] + fNumPadsDownToLayer[iLayer+1];
@@ -394,29 +422,23 @@ bool LTPadPlane::IsInBoundary(Double_t i, Double_t j)
 
 void LTPadPlane::GetSectionParameters(Int_t section, Double_t &t1, Double_t &t2, Double_t &xmin, Double_t &xmax, Double_t &ymin, Double_t &ymax)
 {
+    auto x1 = fPosSectionCorner[section][0].X();
+    auto x2 = fPosSectionCorner[section][1].X();
+    auto x3 = fPosSectionCorner[section][2].X();
+    auto x4 = fPosSectionCorner[section][3].X();
+    auto y1 = fPosSectionCorner[section][0].Y();
+    auto y2 = fPosSectionCorner[section][1].Y();
+    auto y3 = fPosSectionCorner[section][2].Y();
+    auto y4 = fPosSectionCorner[section][3].Y();
     xmin=DBL_MAX, xmax=-DBL_MAX, ymin=DBL_MAX, ymax=-DBL_MAX;
-         if (section==0) { xmin =-250; xmax = 250; ymin =    0; ymax = 550; t1 = +fTanPi3o8; t2 = +fTanPi5o8; }
-    else if (section==1) { xmin =-550; xmax =   0; ymin =    0; ymax = 550; t1 = +fTanPi5o8; t2 = +fTanPi7o8; }
-    else if (section==2) { xmin =-550; xmax =   0; ymin = -250; ymax = 250; t1 = +fTanPi7o8; t2 = +fTanPi1o8; }
-    else if (section==3) { xmin =-550; xmax =   0; ymin = -550; ymax =   0; t1 = +fTanPi1o8; t2 = -fTanPi3o8; }
-    else if (section==4) { xmin =-250; xmax = 250; ymin = -550; ymax =   0; t1 = -fTanPi3o8; t2 = -fTanPi5o8; }
-    else if (section==5) { xmin =   0; xmax = 550; ymin = -550; ymax =   0; t1 = -fTanPi5o8; t2 = -fTanPi7o8; }
-    else if (section==6) { xmin =   0; xmax = 550; ymin = -250; ymax = 250; t1 = -fTanPi7o8; t2 = +fTanPi1o8; }
-    else                 { xmin =   0; xmax = 550; ymin =    0; ymax = 550; t1 = +fTanPi1o8; t2 = +fTanPi3o8; }
-    //double r1 = 550;
-    //double r2 = 550;
-    //auto x1 = r1/sqrt(1+t1*t1); auto y1 = x1*t1;
-    //auto x2 = r1/sqrt(1+t2*t2); auto y2 = x2*t2;
-    //auto x3 = r2/sqrt(1+t1*t1); auto y3 = x3*t1;
-    //auto x4 = r2/sqrt(1+t2*t2); auto y4 = x4*t2;
-    //for (auto x : {x1,x2,x3,x4}) {
-    //    if (xmin>x) xmin = x;
-    //    if (xmax<x) xmax = x;
-    //}
-    //for (auto y : {y1,y2,y3,y4}) {
-    //    if (ymin>y) ymin = y;
-    //    if (ymax<y) ymax = y;
-    //}
+    for (auto x : {x1,x2,x3,x4}) {
+        if (xmin>x) xmin = x;
+        if (xmax<x) xmax = x;
+    }
+    for (auto y : {y1,y2,y3,y4}) {
+        if (ymin>y) ymin = y;
+        if (ymax<y) ymax = y;
+    }
 }
 
 void LTPadPlane::CreateHistograms()

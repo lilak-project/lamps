@@ -143,12 +143,16 @@ class LTPadPlane : public LKPadPlane
         Double_t fCosPiNo4[8];
         Double_t fSinPiNo4[8];
 
+        int fStartRowFrom[42] = {0};
+        int fNumHalfRowsInLayerInput[42] = {12,13,14,16,17,18,19,20,21,22,24,25,26,27,28,29,31,32,33,34,35,36,37,39,40,41,42,43,44,45,47,48,49,50,51,52,53,55,40,23,13,5};
         int fNumHalfRowsInLayer[50] = {0};
         int fNumPadsDownToLayer[50] = {0}; ///< in single section
         int fNumSkippedHalfRows[50] = {0};
 
         Double_t fXSpacing;
         Double_t fRSpacing;
+        Double_t fDCX = -1.5; ///< Displacement of pad cut line in x-axis
+        //Double_t fDCX = 0; ///< Displacement of pad cut line in x-axis
 
         const Bool_t fDoCutTopBoundary = true;
         const Bool_t fDoCutSideBoundary = true;
@@ -181,8 +185,9 @@ class LTPadPlane : public LKPadPlane
         int ConvPH(int bin) { return bin+1; }
 
     public:
-        double GetPadCutBoundaryYAtX(double x) { return fTanPi3o8*x; }
-        double GetPadCutBoundaryXAtR(double r) { return r/sqrt(1+fTanPi3o8*fTanPi3o8); }
+        double GetPadCutBoundaryYAtX(double x) { return fTanPi3o8*(x-fDCX); }
+        //double GetPadCutBoundaryXAtR(double r) { return r/sqrt(1+fTanPi3o8*fTanPi3o8); }
+        double GetPadCutBoundaryXAtR(double r) { return (fDCX*fTanPi3o8*fTanPi3o8+sqrt((r*r-fDCX*fDCX)*fTanPi3o8*fTanPi3o8+r*r)) / (fTanPi3o8*fTanPi3o8+1); }
         double GetPadCenterYBoundAtX(double x) { return fTanPi3o8*(x-.5) + 10; }
 
         Double_t GetRMin()            const { return fRMin; }
