@@ -3,30 +3,26 @@ run    0
 split  0
 size   0
 
-*LKRun/RunName lamps {run} {split}.all
-
-#################################################################################################
-
-hostname e{lilak_hostuser}
-
-@bell.ejungwoo/common_data_path                 /home/ejungwoo/data/lamps
-@mary.lan.ejungwoo/common_data_path             /Users/ejungwoo/data/lamps
-@mary.local.ejungwoo/common_data_path           /Users/ejungwoo/data/lamps
-@CENS-ALPHA-00.cens-alpha-00/common_data_path   /home/cens-alpha-00/data/lamps
-raw_data_path  {common_data_path}/conv
-reco_data_path {common_data_path}/reco
-
-#################################################################################################
-LTPadPlane/position_map     /Users/ejungwoo/lilak/lamps_2023/common/LAMPS_TPC_PAD_info_11_lilak
-
-#################################################################################################
 *LKRun/RunName lamps {run} {split}
-*LKRun/DataPath data #{reco_data_path}
+*LKRun/DataPath {lilak_data}
 
-#################################################################################################
 persistency/
     RawData     true
     FrameHeader true
 
-LKEveTask/drawEve3D false
-#LKEveTask/drawPlane
+LTPadPlane/position_map     {lilak_common}/LAMPS_TPC_PAD_info_11_lilak
+
+LKEveTask/
+    drawEve3D false
+    #drawPlane
+
+LKPulseExtractionTask/
+    analysisName        lampstpc_pulse
+    threshold           500
+    tbRange             0 512
+    tbRangeCut          1 511
+    tbHeightCut         500 4000
+    tbWidthCut          20 40
+    fixPedestal         -10000
+    channelIsInverted   false
+    writeSummaryTree    true

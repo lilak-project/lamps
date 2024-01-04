@@ -1,5 +1,16 @@
-//void next() { LKRun::GetRun() -> RunSelectedEvent("EventHeader[0].IsGoodEvent()"); }
-void next() { LKRun::GetRun() -> ExecuteNextEvent(); }
+LKPulseShapeAnalysisTask *fPSA;
+
+void next(int eventID=-1) {
+    if (eventID>=0)
+        LKRun::GetRun()->ExecuteEvent(eventID);
+    else
+        LKRun::GetRun()->ExecuteNextEvent();
+}
+
+void drawPSA()
+{
+    auto chana = fPSA -> GetChannelAnalyzer();
+}
 
 void run_eve()
 {
@@ -7,13 +18,15 @@ void run_eve()
     run -> SetTag("eve");
     run -> AddPar("config_lamps.mac");
     run -> AddInputFile("data/lamps_0000.0.all.root");
-    //run -> AddInputFile("data/texat_0801.all.root");
-    //run -> AddInputFile("/home/cens-alpha-00/data/texat/reco/texat_0801.reco.root");
-    //run -> AddFriend("~/data/texat/reco/texat_0801.conv.root");
     run -> AddDetector(new LAMPSTPC());
+    fPSA = new LKPulseShapeAnalysisTask;
+    run -> Add(fPSA);
     run -> Add(new LKEveTask);
     run -> Init();
 
+    run -> SetEventCountForMessage(1);
+
     //LKWindowManager::GetWindowManager() -> FixCanvasPosition();
-    //next();
+    //next(8);
+    next();
 }
