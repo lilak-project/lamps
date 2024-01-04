@@ -22,7 +22,7 @@ LTPadPlane* LTPadPlane::fInstance = nullptr;
 LTPadPlane* LTPadPlane::GetPlane() { return fInstance; }
 
 LTPadPlane::LTPadPlane()
-    :LKPadPlane("LTPadPlane", "pad plane with rectangular pads following the circle line for LAMPS-TPC")
+    :LKDetectorPlane("LTPadPlane", "pad plane with rectangular pads following the circle line for LAMPS-TPC")
 {
     fInstance = this;
     fName = "LTPadPlane";
@@ -166,6 +166,10 @@ bool LTPadPlane::Init()
                 else if (yCorner[3] < GetPadCutBoundaryYAtX(xCorner[3])) {
                     xCorner[3] = GetPadCutBoundaryXAtR(radius1);
                     yCorner[3] = GetPadCutBoundaryYAtX(xCorner[3]);
+                    if (layer>37&&row>fNumHalfRowsInLayerInput[layer]-3) {
+                        //lk_debug << layer << " " << row << " " << fNumHalfRowsInLayerInput[layer] << endl;
+                        //+170  /home/ejungwoo/lilak/lamps_2023/detector/LTPadPlane.cpp # 38 39 40
+                    }
                     if (row==fNumHalfRowsInLayerInput[layer]) {
                         xCorner[0] = GetPadCutBoundaryXAtR(radius2);
                         yCorner[0] = GetPadCutBoundaryYAtX(xCorner[0]);
@@ -268,15 +272,15 @@ bool LTPadPlane::Init()
         for (auto layer=0; layer<fNumLayers; ++layer) {
             for (auto row=1; row<=fNumHalfRowsInLayer[layer]; ++row)
             {
-                auto padL = LKPadPlane::GetPad(section,layer,-row);
-                auto padR = LKPadPlane::GetPad(section,layer,+row);
+                auto padL = LKDetectorPlane::GetPad(section,layer,-row);
+                auto padR = LKDetectorPlane::GetPad(section,layer,+row);
 
                 // pad below
                 if (layer>0) {
                     auto rowNb = row + fNumSkippedHalfRows[layer] - fNumSkippedHalfRows[layer-1];
                     if (rowNb<=0||rowNb>fNumHalfRowsInLayer[layer-1]) continue;
-                    auto padBelowL = LKPadPlane::GetPad(section,layer-1,-rowNb);
-                    auto padBelowR = LKPadPlane::GetPad(section,layer-1,+rowNb);
+                    auto padBelowL = LKDetectorPlane::GetPad(section,layer-1,-rowNb);
+                    auto padBelowR = LKDetectorPlane::GetPad(section,layer-1,+rowNb);
                     SetNeighborPads(padL,padBelowL);
                     SetNeighborPads(padR,padBelowR);
                 }
@@ -402,7 +406,7 @@ LKPad *LTPadPlane::GetPadFromEleID(Int_t cobo, Int_t aget, Int_t asad, Int_t cha
     LKPad *pad = nullptr;
     auto padID = FindPadID(cobo,aget,asad,chan);
     if (padID>=0)
-        pad = LKPadPlane::GetPad(padID);
+        pad = LKDetectorPlane::GetPad(padID);
     return pad;
 }
 
@@ -700,7 +704,7 @@ void LTPadPlane::FillDataToHist()
             auto buffer = channel -> GetWaveformY();
             for (auto tb=0; tb<fNumTbs; ++tb)
                 fHistWaveform -> Fill(tb,buffer[tb]);
-            auto pad = LKPadPlane::GetPad(padID);
+            auto pad = LKDetectorPlane::GetPad(padID);
             pad -> SetBufferRaw(buffer);
         }
     }
@@ -762,7 +766,7 @@ void LTPadPlane::FillDataToHist()
             }
             if (charge<0)
                 continue;
-            auto pad = LKPadPlane::GetPad(padID);
+            auto pad = LKDetectorPlane::GetPad(padID);
             auto x = pad -> GetX();
             auto y = pad -> GetY();
             auto section = pad -> GetSection();
@@ -966,8 +970,8 @@ void LTPadPlane::ZoomInWindow(Int_t bin, Double_t x, Double_t y)
 void LTPadPlane::SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y)
 {
     auto padID = fHistPadPlane -> FindBin(x,y) - 1;
-    auto pad = LKPadPlane::GetPad(padID);
-    if (pad==nullptr) {
+    fSelectedPad = LKDetectorPlane::GetPad(padID);
+    if (fSelectedPad==nullptr) {
         lk_error << endl;
         return;
     }
@@ -978,7 +982,7 @@ void LTPadPlane::SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y)
         fGraphPadBoundary -> SetLineColor(kBlue);
     }
     fGraphPadBoundary -> Set(0);
-    auto corners = pad -> GetPadCorners();
+    auto corners = fSelectedPad -> GetPadCorners();
     Int_t numCorners = corners->size();
     for (auto iCorner=0; iCorner<numCorners+1; ++iCorner)
     {
@@ -991,7 +995,7 @@ void LTPadPlane::SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y)
     fGraphPadBoundary -> Draw("samel");
 
     GetCanvas() -> cd(2);
-    auto buffer = pad -> GetBufferRaw();
+    auto buffer = fSelectedPad -> GetBufferRaw();
     TH1D* histChannel = fHistChannel1;
     TH1D* histChannelPre = fHistChannel2;
     if (!fUseChannel1) {
@@ -1008,4 +1012,41 @@ void LTPadPlane::SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y)
     histChannel -> Draw();
     histChannelPre -> Draw("same");
     fUseChannel1 = !fUseChannel1;
+}
+
+void LTPadPlane::WriteCurrentChannel(TString name)
+{
+    /*
+    if (fSelectedPad==nullptr)
+        return;
+
+    if (name.IsNull()) name = "selected_channel.root";
+    lk_info << "Creating " << name << endl;
+    auto fileTestChannel = new TFile(name,"recreate");
+    fSelectedPad -> Write("pad",TObject::kSingleKey);
+    for (auto hitArray : fHitArrayList) {
+        int countHitsInChannel = 0;
+        auto numHits = hitArray -> GetEntries();
+        for (auto iHit=0; iHit<numHits; ++iHit) {
+            auto hit = (LKHit *) hitArray -> At(iHit);
+            if (fCAAC==hit -> GetChannelID()) {
+                fileTestChannel -> cd();
+                hit -> Write(Form("hit%d",countHitsInChannel++),TObject::kSingleKey);
+            }
+        }
+    }
+    if (fPar!=nullptr) {
+        auto run = LKRun::GetRun();
+        if (run!=nullptr)
+            fPar -> AddPar("TTMicromegas/WriteCurrentChannel/eventID",LKRun::GetRun()->GetCurrentEventID());
+        fPar -> AddPar("TTMicromegas/WriteCurrentChannel/electronicsID",fCurrElectronicsID);
+        fPar -> Write(fPar->GetName(),TObject::kSingleKey);
+    }
+    if (fEventHeaderHolder!=nullptr) {
+        auto eventHeader = (TTEventHeader*) fEventHeaderHolder -> At(0);
+        if (eventHeader!=nullptr) {
+            eventHeader -> Write("EventHeader",TObject::kSingleKey);
+        }
+    }
+    */
 }

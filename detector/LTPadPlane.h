@@ -1,11 +1,11 @@
 #ifndef LAMPSTPCPADPLANE_HH
 #define LAMPSTPCPADPLANE_HH
 
-#include "LKPadPlane.h"
+#include "LKDetectorPlane.h"
 #include "TF1.h"
 #include "TH2Poly.h"
 
-class LTPadPlane : public LKPadPlane
+class LTPadPlane : public LKDetectorPlane
 {
     public:
         LTPadPlane();
@@ -17,7 +17,6 @@ class LTPadPlane : public LKPadPlane
         virtual bool Init();
 
         virtual Int_t FindPadID(Double_t i, Double_t j);
-        //virtual Int_t FindPadID(Int_t section, Int_t row, Int_t layer);
         virtual Int_t FindPadID(Int_t section, Int_t layer, Int_t row);
         virtual Double_t PadDisplacement() const;
         virtual bool IsInBoundary(Double_t i, Double_t j);
@@ -30,7 +29,6 @@ class LTPadPlane : public LKPadPlane
         TH2* GetHist(Int_t selectSection);
         void Draw(Option_t *option="");
 
-        //LKPad* GetPad(Int_t section, Int_t layer, Int_t row) { return GetPad(FindPadID(section,layer,row)); }
         Int_t FindPadID(Int_t cobo, Int_t aget, Int_t asad, Int_t chan);
         LKPad *GetPadFromEleID(Int_t cobo, Int_t aget, Int_t asad, Int_t chan);
         int GetElectronicsID(int cobo, int aget, int asad, int channelID) { return 100000*cobo + 10000*aget + 100*asad + channelID; }
@@ -44,61 +42,10 @@ class LTPadPlane : public LKPadPlane
         void ZoomInWindow(Int_t bin, Double_t x, Double_t y);
         void SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y);
 
-    //public: // LKDetectorPlane
-        //virtual void Clear(Option_t *option = "");
-        //virtual void Print(Option_t *option = "") const;
-        //virtual bool Init() = 0;
-        //void SetDetector(LKDetector *detector) { fDetector = detector; }
-        //virtual bool IsInBoundary(Double_t i, Double_t j) = 0;
-        //virtual Int_t FindChannelID(Double_t i, Double_t j) { return -1; }
-        //virtual Int_t FindChannelID(Int_t section, Int_t row, Int_t layer) { return -1; }
-        //virtual TCanvas *GetCanvas(Option_t *option = "");
-        //virtual int GetNumCPads() { return 1; }
-        //virtual TPad *GetCPad(int iPad) { return (TPad*) GetCanvas(); }
-        //virtual TH2* GetHist(Option_t *option = "-1") = 0;
-        //virtual bool SetDataFromBranch() { return false; }
-        //virtual void FillDataToHist() {};
-        //virtual void DrawFrame(Option_t *option = "") {}
-        //virtual void Draw(Option_t *option = "");
-        //TVector3 GlobalToLocalAxis(TVector3 xGlobal) const { return xGlobal; }
-        //TVector3 LocalToGlobalAxis(TVector3 xLocal) const { return xLocal; }
-        //void SetAxis(axis_t axis1, axis_t axis2);
-        //axis_t GetAxis1();
-        //axis_t GetAxis2();
+        //virtual void DriftElectron(TVector3 posGlobal, TVector3 &posFinal, double &driftLength);
+        //virtual void DriftElectronBack(LKPad* pad, double tb, TVector3 &posReco, double &driftLength);
 
-    //public: // LKPadPlane
-        //virtual void Print(Option_t *option = "") const;
-        //virtual void Clear(Option_t *option = "");
-        //virtual Int_t FindChannelID(Double_t i, Double_t j) { return -1; }
-        //virtual Int_t FindChannelID(Int_t section, Int_t row, Int_t layer) { return -1; }
-        //virtual Int_t FindPadID(Double_t i, Double_t j) { return FindChannelID(i,j); }
-        //virtual Int_t FindPadID(Int_t section, Int_t row, Int_t layer) { return FindChannelID(section,row,layer); }
-        //Double_t PadDisplacement() const { return 0; }
-        //virtual bool SetDataFromBranch();
-        //virtual void DrawHist();
-        //void FillDataToHist();
-        //LKPad *GetPadFast(Int_t padID);
-        //LKPad *GetPad(Int_t padID);
-        //LKPad *GetPad(Double_t i, Double_t j);
-        //LKPad *GetPad(Int_t section, Int_t row, Int_t layer);
-        //void SetPadArray(TClonesArray *padArray);
-        //void SetHitArray(TClonesArray *hitArray);
-        //Int_t GetNumPads();
-        //void FillBufferIn(Double_t i, Double_t j, Double_t tb, Double_t val, Int_t trackID = -1);
-        //virtual void ResetHitMap();
-        //virtual void ResetEvent();
-        //void AddHit(LKTpcHit *hit);
-        //virtual LKTpcHit *PullOutNextFreeHit();
-        //void PullOutNeighborHits(vector<LKTpcHit*> *hits, vector<LKTpcHit*> *neighborHits);
-        //void PullOutNeighborHits(TVector2 p, Int_t range, vector<LKTpcHit*> *neighborHits);
-        //void PullOutNeighborHits(Double_t x, Double_t y, Int_t range, vector<LKTpcHit*> *neighborHits);
-        //void PullOutNeighborHits(LKHitArray *hits, LKHitArray *neighborHits);
-        //void PullOutNeighborHits(Double_t x, Double_t y, Int_t range, LKHitArray *neighborHits);
-        //void GrabNeighborPads(vector<LKPad*> *pads, vector<LKPad*> *neighborPads);
-        //TObjArray *GetPadArray();
-        //bool PadPositionChecker(bool checkCorners = true);
-        //bool PadNeighborChecker();
-        //TVector3 DriftElectron(TVector3 xGlobal) const;
+        void WriteCurrentChannel(TString name="");
 
     private:
         LKPad *NewPad(Int_t s, Int_t r, Int_t l);
@@ -181,12 +128,13 @@ class LTPadPlane : public LKPadPlane
 
         TString fFillType = "Buffer";
 
+        LKPad *fSelectedPad = nullptr;
+
         int ConvHP(int bin) { return bin-1; }
         int ConvPH(int bin) { return bin+1; }
 
     public:
         double GetPadCutBoundaryYAtX(double x) { return fTanPi3o8*(x-fDCX); }
-        //double GetPadCutBoundaryXAtR(double r) { return r/sqrt(1+fTanPi3o8*fTanPi3o8); }
         double GetPadCutBoundaryXAtR(double r) { return (fDCX*fTanPi3o8*fTanPi3o8+sqrt((r*r-fDCX*fDCX)*fTanPi3o8*fTanPi3o8+r*r)) / (fTanPi3o8*fTanPi3o8+1); }
         double GetPadCenterYBoundAtX(double x) { return fTanPi3o8*(x-.5) + 10; }
 
