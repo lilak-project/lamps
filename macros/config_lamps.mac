@@ -18,6 +18,8 @@ LKEveTask/
 
 eve/planeFillType Hit
 
+LTPadPlane/pulseFile {lilak_common}/pulseReference_lampstpc_pulse.root
+
 LKPulseExtractionTask/
     analysisName        lampstpc_pulse
     threshold           500
@@ -28,3 +30,11 @@ LKPulseExtractionTask/
     fixPedestal         -10000
     channelIsInverted   false
     writeSummaryTree    true
+
+LTHelixTrackFindingTask/
+    defaultScale    2.5
+    trackWCutLL     5.
+    trackWCutHL     15.
+    trackHCutLL     5.
+    trackHCutHL     15.
+    tpcBFieldAxis   z
