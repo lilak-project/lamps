@@ -46,7 +46,9 @@ class LTPadPlane : public LKDetectorPlane
         //virtual void DriftElectron(TVector3 posGlobal, TVector3 &posFinal, double &driftLength);
         //virtual void DriftElectronBack(LKPad* pad, double tb, TVector3 &posReco, double &driftLength);
 
-        void WriteCurrentChannel(TString name="");
+        //void WriteCurrentChannel(TString name="");
+
+        LKChannelAnalyzer* GetChannelAnalyzer(int i=0);
 
     private:
         LKPad *NewPad(Int_t section, Int_t layer, Int_t row);
@@ -63,7 +65,10 @@ class LTPadPlane : public LKDetectorPlane
         Double_t fYMax = +550;
         Double_t fZMin = -350;
         Double_t fZMax = 1350;
-        Int_t fZBins = 512;
+        //Int_t fZBins = 512;
+        Int_t fZBins = 200;
+
+        Double_t fHistZMin = 0.1;
 
         TVector2 fPosSectionCorner[8][4];
 
@@ -84,6 +89,8 @@ class LTPadPlane : public LKDetectorPlane
         Int_t fNumTbs = 512;
         Int_t fMaxWaveformY = 4100;
 
+        bool fZoomZoomPressed = false;
+        Int_t fBinZoomZoomButton;
         Int_t fBinNumberTopView;
         Int_t fBinNumberSideView;
 
@@ -111,8 +118,10 @@ class LTPadPlane : public LKDetectorPlane
         int ****fMapCAACToPadID;
         int ****fMapSLRPToPadID;
 
-        int fSelectedSection = 0;
+        int fSelectedSection = 2;
+        bool fZoomTop = false;
 
+        TH2Poly* fFramePadPlaneSection[8];
         TH2Poly* fHistPadPlaneSection[8];
         TH2Poly* fFramePadPlane = nullptr;
         TH2Poly* fHistPadPlane = nullptr;
@@ -125,11 +134,13 @@ class LTPadPlane : public LKDetectorPlane
         TGraph* fGraphSectionBoundary1 = nullptr;
         TGraph* fGraphSectionBoundary2 = nullptr;
         TGraph* fGraphPadBoundary = nullptr;
+        TGraph* fGraphPadBoundaryNb[10];
 
         bool fUseChannel1 = true;
 
         TClonesArray* fBufferArray = nullptr;
         TClonesArray* fHitArray = nullptr;
+        TClonesArray* fTrackArray = nullptr;
 
         TString fFillType = "Buffer";
 

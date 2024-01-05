@@ -9,6 +9,7 @@
 #include "TLine.h"
 #include "TCanvas.h"
 #include "TPaveText.h"
+#include "LKTracklet.h"
 
 #include "LKWindowManager.h"
 #include "GETChannel.h"
@@ -214,14 +215,11 @@ bool LTPadPlane::Init()
             {
                 Double_t phiSection = section * TMath::Pi()/4.;
 
-                //TVector2 point(xPad, yPad);
-                //point = point.Rotate(phiSection);
-
                 TVector2 point;
                 for (int iRL : {0,1})
                 {
-                    int signRL = iRL==0?1:-1;
-                    int pm = iRL==0?1:0;
+                    int signRL = (iRL==0?1:-1);
+                    int pm = (iRL==0?1:0);
                     auto pad = NewPad(section, layer, signRL*row);
                     auto padID = pad -> GetPadID();
                     fMapSLRPToPadID[section][layer][row][pm] = padID;
@@ -291,17 +289,61 @@ bool LTPadPlane::Init()
                 auto padR = LKDetectorPlane::GetPad(section,layer,+row);
 
                 // pad below
-                if (layer>0) {
+                if (layer>0)
+                {
                     auto rowNb = row + fNumSkippedHalfRows[layer] - fNumSkippedHalfRows[layer-1];
-                    if (rowNb<=0||rowNb>fNumHalfRowsInLayer[layer-1]) continue;
+
+                    auto rowL1 = -rowNb - 1;
+                    if (abs(rowL1)<=fNumHalfRowsInLayer[layer-1]) {
+                        auto padBelowL1 = LKDetectorPlane::GetPad(section,layer-1,rowL1);
+                        if (padBelowL1!=nullptr) SetNeighborPads(padL,padBelowL1);
+                    }
+
+                    auto rowL2 = -rowNb + 1; if (rowL2==0) rowL2 += 1;
+                    auto padBelowL2 = LKDetectorPlane::GetPad(section,layer-1,rowL2);
+                    if (padBelowL2!=nullptr) SetNeighborPads(padL,padBelowL2);
+
+                    auto rowR1 = rowNb - 1; if (rowR1==0) rowR1 -= 1;
+                    auto padBelowR1 = LKDetectorPlane::GetPad(section,layer-1,rowR1);
+                    if (padBelowR1!=nullptr) SetNeighborPads(padR,padBelowR1);
+
+                    auto rowR2 = rowNb + 1;
+                    if (abs(rowR2)<=fNumHalfRowsInLayer[layer-1]) {
+                        auto padBelowR2 = LKDetectorPlane::GetPad(section,layer-1,rowR2);
+                        if (padBelowR2!=nullptr) SetNeighborPads(padR,padBelowR2);
+                    }
+
+                    if (rowNb<=0||rowNb>fNumHalfRowsInLayer[layer-1])
+                        continue;
+
                     auto padBelowL = LKDetectorPlane::GetPad(section,layer-1,-rowNb);
-                    auto padBelowR = LKDetectorPlane::GetPad(section,layer-1,+rowNb);
                     SetNeighborPads(padL,padBelowL);
+
+                    auto padBelowR = LKDetectorPlane::GetPad(section,layer-1,+rowNb);
                     SetNeighborPads(padR,padBelowR);
+
                 }
             }
         }
     }
+
+    /*
+    auto numPads = GetNumPads();
+    for (auto iPad=0; iPad<numPads; ++iPad) {
+        auto pad = GetPad(iPad);
+        auto nbPadArray = pad -> GetNeighborPadArray();
+        auto numNbPads = nbPadArray -> size();
+        for (auto iPad=0; iPad<numNbPads; ++iPad)
+        {
+            auto pad1 = nbPadArray -> at(iPad);
+            for (auto jPad=0; jPad<numNbPads; ++jPad)
+            {
+                if (iPad==jPad) continue;
+                auto pad2 = nbPadArray -> at(jPad);
+            }
+        }
+    }
+    */
 
     fMapCAACToPadID = new int***[22];
     for (int cobo=0; cobo<22; ++cobo) {
@@ -375,9 +417,19 @@ Int_t LTPadPlane::FindPadID(Int_t section, Int_t layer, Int_t row)
     int idLayer = section*fNumPadsDownToLayer[layer];
     if (layer<fNumLayers) idLayer = idLayer + (8-section)*fNumPadsDownToLayer[layer+1];
     int idRow = ((row>0) ? (fNumHalfRowsInLayer[layer] - row) : (fNumHalfRowsInLayer[layer] - row - 1));
-    int id = idLayer + idRow;
+    int padID = idLayer + idRow;
 
-    return id;
+    //int padID2 = -1;
+    //int pm = int (row>0?1:0);
+    //row = abs(row);
+    //if (section<0||section>=8) padID2 = -1;
+    //if (layer<0||layer>=fNumLayers) padID2 = -2;
+    //if (row==0||abs(row)>fNumHalfRowsInLayer[layer]) padID2 = -3;
+    //padID2 = fMapSLRPToPadID[section][layer][row][pm];
+    //if (padID2!=padID)
+    //    lk_debug << section << " " << layer << " " << row << " " << pm << " " << padID2 << " " << padID << endl;
+
+    return padID;
 }
 
 Int_t LTPadPlane::FindPadID(Int_t cobo, Int_t aget, Int_t asad, Int_t chan)
@@ -474,6 +526,8 @@ void LTPadPlane::CreateHistograms()
     if (fFramePadPlane!=nullptr)
         return;
 
+    fPar -> UpdateParDouble("LTPadPlane/histZMin",fHistZMin);
+
     fFramePadPlane = new TH2Poly("frameLTPP","LAMPS TPC Pad Plane;x (mm);y (mm)",fXMin,fXMax,fYMin,fYMax);
     fFramePadPlane -> SetStats(0);
     fFramePadPlane -> GetXaxis() -> SetTickLength(0.01);
@@ -483,16 +537,19 @@ void LTPadPlane::CreateHistograms()
     fHistPadPlane -> SetStats(0);
     fHistPadPlane -> GetXaxis() -> SetTickLength(0.01);
     fHistPadPlane -> GetYaxis() -> SetTickLength(0.01);
+    fHistPadPlane -> SetMinimum(fHistZMin);
 
-    fHistTopView = new TH2D("histLTTV", "LAMPS TPC Top View;z (mm);x (mm)",fZBins,fZMin,fZMax,3*fNumLayers,fXMin,fXMax);
+    fHistTopView = new TH2D("histLTTV", "LAMPS TPC Top View;z (mm);x (mm)",fZBins,fZMin,fZMax,fNumLayers,fXMin,fXMax);
     fHistTopView -> SetStats(0);
     fHistTopView -> GetXaxis() -> SetTickLength(0.01);
     fHistTopView -> GetYaxis() -> SetTickLength(0.01);
+    fHistTopView -> SetMinimum(fHistZMin);
 
-    fHistSideView = new TH2D("histLTSV", "LAMPS TPC Side View;z (mm);y (mm)",fZBins,fZMin,fZMax,3*fNumLayers,fYMin,fYMax);
+    fHistSideView = new TH2D("histLTSV", "LAMPS TPC Side View;z (mm);y (mm)",fZBins,fZMin,fZMax,fNumLayers,fYMin,fYMax);
     fHistSideView -> SetStats(0);
     fHistSideView -> GetXaxis() -> SetTickLength(0.01);
     fHistSideView -> GetYaxis() -> SetTickLength(0.01);
+    fHistSideView -> SetMinimum(fHistZMin);
 
     fHistWaveform = new TH2D("histWaveform", "All channels;tb;charge", fNumTbs, 0, fNumTbs, fMaxWaveformY, 0, fMaxWaveformY);
     fHistWaveform -> SetStats(0);
@@ -502,13 +559,17 @@ void LTPadPlane::CreateHistograms()
     for (auto section=0; section<8; ++section) {
         Double_t t1, t2, xmin, xmax, ymin, ymax;
         GetSectionParameters(section,t1,t2,xmin,xmax,ymin,ymax);
-        fHistPadPlaneSection[section] = new TH2Poly(Form("frameLTPP%d",section),Form("LAMPS TPC Pad Plane section-%d;x (mm);y (mm)",section),xmin,xmax,ymin,ymax);
-        fHistPadPlaneSection[section]  -> SetStats(0);
-        fHistPadPlaneSection[section]  -> SetTitle(";x (mm); y (mm)");
-        //fHistPadPlaneSection[section]  -> GetXaxis() -> SetRangeUser(xmin,xmax);
-        //fHistPadPlaneSection[section]  -> GetYaxis() -> SetRangeUser(xmin,xmax);
-        fHistPadPlaneSection[section]  -> GetXaxis() -> SetTickLength(0.01);
-        fHistPadPlaneSection[section]  -> GetYaxis() -> SetTickLength(0.01);
+        fHistPadPlaneSection[section] = new TH2Poly(Form("histLTPP_S%d",section),Form("S%d;x (mm);y (mm)",section),xmin,xmax,ymin,ymax);
+        fHistPadPlaneSection[section] -> SetStats(0);
+        fHistPadPlaneSection[section] -> GetXaxis() -> SetTickLength(0.01);
+        fHistPadPlaneSection[section] -> GetYaxis() -> SetTickLength(0.01);
+        fHistPadPlaneSection[section] -> SetMinimum(fHistZMin);
+
+        fFramePadPlaneSection[section] = new TH2Poly(Form("frameLTPP_S%d",section),Form("S%d;x (mm);y (mm)",section),xmin,xmax,ymin,ymax);
+        fFramePadPlaneSection[section] -> SetStats(0);
+        fFramePadPlaneSection[section] -> GetXaxis() -> SetTickLength(0.01);
+        fFramePadPlaneSection[section] -> GetYaxis() -> SetTickLength(0.01);
+        fFramePadPlaneSection[section] -> SetMinimum(fHistZMin);
     }
 
     fGraphSectionBoundary1 = new TGraph();
@@ -522,10 +583,16 @@ void LTPadPlane::CreateHistograms()
     fGraphPadBoundary = new TGraph();
     fGraphPadBoundary -> SetLineColor(kRed);
     fGraphPadBoundary -> SetLineWidth(3);
+    for (auto i=0; i<10; ++i) {
+        fGraphPadBoundaryNb[i] = new TGraph();
+        fGraphPadBoundaryNb[i] -> SetLineColor(kRed);
+        fGraphPadBoundaryNb[i] -> SetLineWidth(2);
+        fGraphPadBoundaryNb[i] -> SetLineStyle(2);
+    }
 
     LKPad *pad;
-    Double_t xPoints[6] = {0};
-    Double_t yPoints[6] = {0};
+    Double_t xPoints[10] = {0};
+    Double_t yPoints[10] = {0};
     TIter iterPads(fChannelArray);
     while ((pad = (LKPad *) iterPads.Next())) 
     {
@@ -543,6 +610,7 @@ void LTPadPlane::CreateHistograms()
         fHistPadPlane  -> AddBin(numCorners+1, xPoints, yPoints);
         auto section = pad -> GetSection();
         fHistPadPlaneSection[section] -> AddBin(numCorners+1, xPoints, yPoints);
+        fFramePadPlaneSection[section] -> AddBin(numCorners+1, xPoints, yPoints);
     }
 
     for (auto section=0; section<8; ++section) {
@@ -553,6 +621,14 @@ void LTPadPlane::CreateHistograms()
         xPoints[4] = fPosSectionCorner[section][0].X(); yPoints[4] = fPosSectionCorner[section][0].Y();
         fFramePadPlane -> AddBin(5, xPoints, yPoints);
     }
+
+    //for (auto section=0; section<8; ++section) {
+    //    xPoints[section] = fPosSectionCorner[section][2].X();
+    //    yPoints[section] = fPosSectionCorner[section][2].Y();
+    //}
+    //xPoints[8] = fPosSectionCorner[0][2].X();
+    //yPoints[8] = fPosSectionCorner[0][2].Y();
+    //fBinZoomZoomButton = fFramePadPlane -> AddBin(9, xPoints, yPoints);
 
     xPoints[0] = fXMax-50;  yPoints[0] = fYMax-50;
     xPoints[1] = fXMax-50;  yPoints[1] = fYMax-250;
@@ -570,20 +646,26 @@ void LTPadPlane::CreateHistograms()
     while (auto bin = (TH2PolyBin*) nextBin()) {
         auto graphBin = (TGraph *) bin -> GetPolygon();
         graphBin -> SetLineColor(kGray+1);
-        //if (removeBinBoundary) graphBin -> SetLineWidth(0);
+    }
+
+    for (auto section=0; section<8; ++section) {
+        TIter nextBin(fFramePadPlaneSection[section] -> GetBins());
+        while (auto bin = (TH2PolyBin*) nextBin()) {
+            auto graphBin = (TGraph *) bin -> GetPolygon();
+            graphBin -> SetLineColor(kGray+1);
+        }
     }
 
     fHistChannel1 = new TH1D("hist_channel_1","channel buffer;time-bucket;charge",fNumTbs,0,fNumTbs);
     fHistChannel2 = new TH1D("hist_channel_2","channel buffer;time-bucket;charge",fNumTbs,0,fNumTbs);
-    for (auto histChannel : {fHistChannel1,fHistChannel2}) {
+    for (TH1* histChannel : {(TH1*)fHistChannel1,(TH1*)fHistChannel2,(TH1*)fHistWaveform,(TH1*)fHistTopView,(TH1*)fHistSideView}) {
         histChannel -> SetStats(0);
-        histChannel -> GetXaxis() -> SetLabelSize(0.065);
-        histChannel -> GetYaxis() -> SetLabelSize(0.065);
-        histChannel -> GetXaxis() -> SetTitleSize(0.065);
-        histChannel -> GetYaxis() -> SetTitleSize(0.065);
+        histChannel -> GetXaxis() -> SetLabelSize(0.062);
+        histChannel -> GetYaxis() -> SetLabelSize(0.062);
+        histChannel -> GetXaxis() -> SetTitleSize(0.062);
+        histChannel -> GetYaxis() -> SetTitleSize(0.062);
         histChannel -> GetXaxis() -> SetTitleOffset(1.20);
-        //histChannel -> GetYaxis() -> SetTitleOffset(0.68);
-        histChannel -> GetYaxis() -> SetTitleOffset(0.80);
+        histChannel -> GetYaxis() -> SetTitleOffset(1.00);
     }
 }
 
@@ -618,19 +700,19 @@ TCanvas *LTPadPlane::GetCanvas(Option_t *)
         auto pad1 = new TPad("pad1","",0,233./700,0.5,1);
         pad1 -> SetMargin(0.12,0.15,0.1,0.1);
         pad1 -> SetNumber(1);
-        pad1 -> AddExec("ex", "LTPadPlane::MouseClickEvent1()");
+        pad1 -> AddExec("ex", "LTPadPlane::MouseClickEvent2()");
         pad1 -> Draw();
         auto pad2 = new TPad("pad2","",0,0,0.5,233./700);
-        pad2 -> SetMargin(0.12,0.05,0.20,0.12);
+        pad2 -> SetMargin(0.12,0.15,0.20,0.12);
         pad2 -> SetNumber(2);
         pad2 -> Draw();
         auto pad3 = new TPad("pad3","",0.5,233./700,1,1);
         pad3 -> SetMargin(0.12,0.15,0.1,0.1);
-        pad3 -> AddExec("ex", "LTPadPlane::MouseClickEvent2()");
+        pad3 -> AddExec("ex", "LTPadPlane::MouseClickEvent1()");
         pad3 -> SetNumber(3);
         pad3 -> Draw();
         auto pad4 = new TPad("pad4","",0.5,0,1,1*233./700);
-        pad4 -> SetMargin(0.12,0.15,0.1,0.1);
+        pad4 -> SetMargin(0.12,0.15,0.20,0.12);
         pad4 -> SetNumber(4);
         pad4 -> Draw();
 
@@ -686,6 +768,7 @@ bool LTPadPlane::SetDataFromBranch()
         return false;
     fBufferArray = fRun -> GetBranchA("RawData");
     fHitArray = fRun -> GetBranchA("Hit");
+    fTrackArray = fRun -> GetBranchA("Track");
     return true;
 }
 
@@ -703,6 +786,7 @@ void LTPadPlane::Clear(Option_t *)
     fHistPadPlaneSection[5] -> Reset("ICES");
     fHistPadPlaneSection[6] -> Reset("ICES");
     fHistPadPlaneSection[7] -> Reset("ICES");
+    fSelectedPad = nullptr;
 }
 
 void LTPadPlane::FillDataToHist()
@@ -754,7 +838,7 @@ void LTPadPlane::FillDataToHist()
     if (fHitArray!=nullptr)
     {
         //fHitArray -> Print();
-        fHistWaveform -> Reset("ICES");
+        //fHistWaveform -> Reset("ICES");
 
         auto numHits = fHitArray -> GetEntries();
         lk_info << "# of hits: " << numHits << endl;
@@ -872,45 +956,146 @@ void LTPadPlane::FillDataToHist()
             fHistSideView -> Fill(z,y,charge);
         }
     }
+
+    if (fTrackArray!=nullptr)
+    {
+        auto numTracks = fTrackArray -> GetEntries();
+        lk_info << "# of tracks: " << numTracks << endl;
+    }
 }
 
 void LTPadPlane::Draw(Option_t *option)
 {
-    CreateHistograms();
-    FillDataToHist();
+    if (TString(option)!="r") {
+        CreateHistograms();
+        FillDataToHist();
+    }
+    fPar -> UpdateParDouble("LTPadPlane/histZMin",fHistZMin);
 
     auto cvs = GetCanvas();
 
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    cvs -> cd(2);
+    fHistWaveform -> Draw("colz");
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    /*
+    if (fZoomZoomPressed) {
+        fZoomZoomPressed = false;
+        if (fHistPadPlaneSection[fSelectedSection]->TestBit(TAxis::kAxisRange)==0) {
+            lk_debug << 1 << endl;
+            fHistPadPlaneSection[fSelectedSection] -> GetXaxis() -> UnZoom();
+            fHistPadPlaneSection[fSelectedSection] -> GetYaxis() -> UnZoom();
+        }
+        else if (fSelectedPad!=nullptr) {
+            lk_debug << 2 << endl;
+            auto x = fSelectedPad -> GetX();
+            auto y = fSelectedPad -> GetY();
+            fHistPadPlaneSection[fSelectedSection] -> GetXaxis() -> SetRangeUser(x-25,x+25);
+            fHistPadPlaneSection[fSelectedSection] -> GetYaxis() -> SetRangeUser(y-25,y+25);
+        }
+        else {
+            lk_debug << 3 << endl;
+        }
+    }
+    */
     cvs -> cd(1);
+    if (fHistPadPlaneSection[fSelectedSection]->GetEntries()==0)
+        fHistPadPlaneSection[fSelectedSection] -> Draw();
+    else {
+        fFramePadPlaneSection[fSelectedSection] -> Draw();
+        fHistPadPlaneSection[fSelectedSection] -> SetMinimum(fHistZMin);
+        fHistPadPlaneSection[fSelectedSection] -> Draw("same colz");
+    }
+    if (fTrackArray!=nullptr) {
+        LKVector3::Axis axis1 = LKVector3::kX;
+        LKVector3::Axis axis2 = LKVector3::kY;
+        auto numTracks = fTrackArray -> GetEntries();
+        for (auto iTrack = 0; iTrack < numTracks; ++iTrack) {
+            auto track = (LKTracklet *) fTrackArray -> At(iTrack);
+            auto graph = track -> TrajectoryOnPlane(axis1,axis2);
+            auto graphNew = (TGraphErrors*) graph -> Clone(); //TODO
+            graphNew -> Draw("samel");
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    cvs -> cd(4);
+    if (fZoomTop) {
+        fHistTopView -> SetMinimum(fHistZMin);
+        fHistTopView -> Draw("colz");
+        fGraphSectionBoundary2 -> Set(0);
+        fGraphSectionBoundary2 -> SetPoint(0, fXMax-50,  fYMax-50);
+        fGraphSectionBoundary2 -> SetPoint(1, fXMax-50,  fYMax-250);
+        fGraphSectionBoundary2 -> SetPoint(2, fXMax-250, fYMax-50);
+        fGraphSectionBoundary2 -> SetPoint(3, fXMax-50,  fYMax-50);
+        if (fTrackArray!=nullptr) {
+            LKVector3::Axis axis1 = LKVector3::kZ;
+            LKVector3::Axis axis2 = LKVector3::kX;
+            auto numTracks = fTrackArray -> GetEntries();
+            for (auto iTrack = 0; iTrack < numTracks; ++iTrack) {
+                auto track = (LKTracklet *) fTrackArray -> At(iTrack);
+                auto graph = track -> TrajectoryOnPlane(axis1,axis2);
+                auto graphNew = (TGraphErrors*) graph -> Clone(); //TODO
+                graphNew -> Draw("samel");
+            }
+        }
+    }
+    else {
+        fHistSideView -> SetMinimum(fHistZMin);
+        fHistSideView -> Draw("colz");
+        fGraphSectionBoundary2 -> Set(0);
+        fGraphSectionBoundary2 -> SetPoint(0, fXMin+50,  fYMin+50);
+        fGraphSectionBoundary2 -> SetPoint(1, fXMin+50,  fYMin+250);
+        fGraphSectionBoundary2 -> SetPoint(2, fXMin+250, fYMin+50);
+        fGraphSectionBoundary2 -> SetPoint(3, fXMin+50,  fYMin+50);
+        if (fTrackArray!=nullptr) {
+            LKVector3::Axis axis1 = LKVector3::kZ;
+            LKVector3::Axis axis2 = LKVector3::kY;
+            auto numTracks = fTrackArray -> GetEntries();
+            for (auto iTrack = 0; iTrack < numTracks; ++iTrack) {
+                auto track = (LKTracklet *) fTrackArray -> At(iTrack);
+                auto graph = track -> TrajectoryOnPlane(axis1,axis2);
+                auto graphNew = (TGraphErrors*) graph -> Clone(); //TODO
+                graphNew -> Draw("samel");
+            }
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    cvs -> cd(3);
     if (fHistPadPlane->GetEntries()==0)
         fFramePadPlane -> Draw();
     else {
         fFramePadPlane -> Draw();
-        fHistPadPlane -> SetMinimum(0.1);
+        fHistPadPlane -> SetMinimum(fHistZMin);
         fHistPadPlane -> Draw("same colz");
     }
-
-    cvs -> cd(2);
-    fHistWaveform -> Draw("colz");
-    //fHistChannel1 -> Draw();
-    //cvs -> cd(2) -> Modified();
-    //cvs -> cd(2) -> Update();
-    //auto ttt1 = (TPaveText*) (cvs->cd(2)->GetListOfPrimitives()) -> FindObject("title");
-    //ttt1 -> SetTextSize(0.065);
-    //ttt1 -> SetTextAlign(12);
-    //cvs -> cd(2) -> Modified();
-    //cvs -> cd(2) -> Update();
-
-    cvs -> cd(3);
-    auto section = 2;
-    //fHistPadPlaneSection[section] -> SetMinimum(0.1);
-    fHistPadPlaneSection[section] -> Draw("colz");
-    fSelectedSection = section;
-
-    cvs -> cd(4);
-    //fFrameSideView -> Draw();
-    fHistSideView -> SetMinimum(0.1);
-    fHistSideView -> Draw("colz");
+    fGraphSectionBoundary2 -> Draw("samel");
+    Double_t t1, t2, xmin, xmax, ymin, ymax;
+    GetSectionParameters(fSelectedSection,t1,t2,xmin,xmax,ymin,ymax);
+    fGraphSectionBoundary1 -> Set(0);
+    fGraphSectionBoundary1 -> SetPoint(0,fPosSectionCorner[fSelectedSection][0].X(), fPosSectionCorner[fSelectedSection][0].Y());
+    fGraphSectionBoundary1 -> SetPoint(1,fPosSectionCorner[fSelectedSection][1].X(), fPosSectionCorner[fSelectedSection][1].Y());
+    fGraphSectionBoundary1 -> SetPoint(2,fPosSectionCorner[fSelectedSection][2].X(), fPosSectionCorner[fSelectedSection][2].Y());
+    fGraphSectionBoundary1 -> SetPoint(3,fPosSectionCorner[fSelectedSection][3].X(), fPosSectionCorner[fSelectedSection][3].Y());
+    fGraphSectionBoundary1 -> SetPoint(4,fPosSectionCorner[fSelectedSection][0].X(), fPosSectionCorner[fSelectedSection][0].Y());
+    fGraphSectionBoundary1 -> Draw("samel");
+    if (fTrackArray!=nullptr) {
+        LKVector3::Axis axis1 = LKVector3::kX;
+        LKVector3::Axis axis2 = LKVector3::kY;
+        auto numTracks = fTrackArray -> GetEntries();
+        for (auto iTrack = 0; iTrack < numTracks; ++iTrack) {
+            auto track = (LKTracklet *) fTrackArray -> At(iTrack);
+            auto graph = track -> TrajectoryOnPlane(axis1,axis2);
+            auto graphNew = (TGraphErrors*) graph -> Clone(); //TODO
+            graphNew -> Draw("samel");
+        }
+    }
 }
 
 void LTPadPlane::MouseClickEvent1()
@@ -1000,56 +1185,15 @@ void LTPadPlane::MouseClickEvent2()
 void LTPadPlane::ZoomInWindow(Int_t bin, Double_t x, Double_t y)
 {
     auto cvs = GetCanvas();
-    if (bin==fBinNumberTopView) {
-        cvs -> cd(4);
-        fHistTopView -> Draw("colz");
-
-        fGraphSectionBoundary2 -> Set(0);
-        fGraphSectionBoundary2 -> SetPoint(0, fXMax-50,  fYMax-50);
-        fGraphSectionBoundary2 -> SetPoint(1, fXMax-50,  fYMax-250);
-        fGraphSectionBoundary2 -> SetPoint(2, fXMax-250, fYMax-50);
-        fGraphSectionBoundary2 -> SetPoint(3, fXMax-50,  fYMax-50);
-        cvs -> cd(1);
-        fGraphSectionBoundary2 -> Draw("samel");
-    }
-    else if (bin==fBinNumberSideView) {
-        cvs -> cd(4);
-        fHistSideView -> Draw("colz");
-
-        fGraphSectionBoundary2 -> Set(0);
-        fGraphSectionBoundary2 -> SetPoint(0, fXMin+50,  fYMin+50);
-        fGraphSectionBoundary2 -> SetPoint(1, fXMin+50,  fYMin+250);
-        fGraphSectionBoundary2 -> SetPoint(2, fXMin+250, fYMin+50);
-        fGraphSectionBoundary2 -> SetPoint(3, fXMin+50,  fYMin+50);
-        cvs -> cd(1);
-        fGraphSectionBoundary2 -> Draw("samel");
-    }
-    else {
-        cvs -> cd(3);
-        auto section = FindSection(x,y);
-        fSelectedSection = section;
-        if (fHistPadPlaneSection[section]->GetEntries()==0)
-            fHistPadPlaneSection[section] -> Draw();
-        else {
-            //fHistPadPlaneSection[section] -> SetMinimum(0.1);
-            fHistPadPlaneSection[section] -> Draw("colz");
-        }
-        Double_t t1, t2, xmin, xmax, ymin, ymax;
-        GetSectionParameters(section,t1,t2,xmin,xmax,ymin,ymax);
-        if (fGraphSectionBoundary1==nullptr) {
-            fGraphSectionBoundary1 = new TGraph();
-            fGraphSectionBoundary1 -> SetLineColor(kBlue);
-            fGraphSectionBoundary1 -> SetLineWidth(3);
-        }
-        fGraphSectionBoundary1 -> Set(0);
-        fGraphSectionBoundary1 -> SetPoint(0,fPosSectionCorner[section][0].X(), fPosSectionCorner[section][0].Y());
-        fGraphSectionBoundary1 -> SetPoint(1,fPosSectionCorner[section][1].X(), fPosSectionCorner[section][1].Y());
-        fGraphSectionBoundary1 -> SetPoint(2,fPosSectionCorner[section][2].X(), fPosSectionCorner[section][2].Y());
-        fGraphSectionBoundary1 -> SetPoint(3,fPosSectionCorner[section][3].X(), fPosSectionCorner[section][3].Y());
-        fGraphSectionBoundary1 -> SetPoint(4,fPosSectionCorner[section][0].X(), fPosSectionCorner[section][0].Y());
-        cvs -> cd(1);
-        fGraphSectionBoundary1 -> Draw("samel");
-    }
+    if (bin==fBinNumberTopView)
+        fZoomTop = true;
+    else if (bin==fBinNumberSideView)
+        fZoomTop = false;
+    //else if (bin==fBinZoomZoomButton)
+        //fZoomZoomPressed = true;
+    else
+        fSelectedSection = FindSection(x,y);
+    LTPadPlane::Draw("r");
 }
 
 void LTPadPlane::SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y)
@@ -1063,22 +1207,41 @@ void LTPadPlane::SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y)
     }
 
     double x0,x1,x2,z0,z1,z2;
-    if (fGraphPadBoundary==nullptr) {
-        fGraphPadBoundary = new TGraph();
-        fGraphPadBoundary -> SetLineColor(kBlue);
-    }
     fGraphPadBoundary -> Set(0);
-    auto corners = fSelectedPad -> GetPadCorners();
-    Int_t numCorners = corners->size();
-    for (auto iCorner=0; iCorner<numCorners+1; ++iCorner)
-    {
-        auto iAt = iCorner;
-        if (iCorner==numCorners) iAt = 0;
-        TVector2 corner = corners->at(iAt);
-        fGraphPadBoundary -> SetPoint(fGraphPadBoundary->GetN(),corner.X(),corner.Y());
+    for (auto i=0; i<10; ++i)
+        fGraphPadBoundaryNb[i] -> Set(0);
+
+    { // draw pad boundary
+        auto nbPadArray = fSelectedPad -> GetNeighborPadArray();
+        auto numNbPads = nbPadArray -> size();
+        for (auto iPad=0; iPad<numNbPads; ++iPad)
+        {
+            auto nbPad = nbPadArray -> at(iPad);
+            auto graphNb = fGraphPadBoundaryNb[iPad];
+            auto corners = nbPad -> GetPadCorners();
+            Int_t numCorners = corners->size();
+            for (auto iCorner=0; iCorner<numCorners+1; ++iCorner) {
+                auto iAt = iCorner;
+                if (iCorner==numCorners) iAt = 0;
+                TVector2 corner = corners->at(iAt);
+                graphNb -> SetPoint(graphNb->GetN(),corner.X(),corner.Y());
+            }
+            GetCanvas() -> cd(1);
+            graphNb -> Draw("samel");
+        }
+
+        auto corners = fSelectedPad -> GetPadCorners();
+        Int_t numCorners = corners->size();
+        for (auto iCorner=0; iCorner<numCorners+1; ++iCorner)
+        {
+            auto iAt = iCorner;
+            if (iCorner==numCorners) iAt = 0;
+            TVector2 corner = corners->at(iAt);
+            fGraphPadBoundary -> SetPoint(fGraphPadBoundary->GetN(),corner.X(),corner.Y());
+        }
+        GetCanvas() -> cd(1);
+        fGraphPadBoundary -> Draw("samel");
     }
-    GetCanvas() -> cd(3);
-    fGraphPadBoundary -> Draw("samel");
 
     GetCanvas() -> cd(2);
     auto buffer = fSelectedPad -> GetBufferRaw();
@@ -1109,4 +1272,18 @@ void LTPadPlane::SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y)
         graph -> Draw("samelx");
     }
     histChannel -> SetTitle(Form("PadID=%d, position=(%.2f, %.2f), #Hits=%d",padID,fSelectedPad->GetI(),fSelectedPad->GetJ(),numHits));
+}
+
+LKChannelAnalyzer* LTPadPlane::GetChannelAnalyzer(int)
+{
+    if (fChannelAnalyzer==nullptr)
+    {
+        if (fPar->CheckPar("LTPadPlane/pulseFile")==false)
+            fPar -> AddLine("LTPadPlane/pulseFile {lilak_common}/pulseReference.root");
+        TString pulseFileName = fPar -> GetParString("LTPadPlane/pulseFile");
+        fChannelAnalyzer = new LKChannelAnalyzer();
+        fChannelAnalyzer -> SetPulse(pulseFileName);
+        fChannelAnalyzer -> Print();
+    }
+    return fChannelAnalyzer;
 }
