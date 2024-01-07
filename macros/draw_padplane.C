@@ -3,10 +3,15 @@ void draw_padplane()
     auto pp = new LTPadPlane();
     pp -> AddPar("config_lamps.mac");
     pp -> Init();
-    pp -> GetPar() -> AddLine("!LTPadPlane/position_map /Users/ejungwoo/lilak/lamps_2023/common/LAMPS_TPC_PAD_info_11");
-    LKWindowManager::GetWindowManager() -> CanvasSquare("cvs");
+    //pp -> GetPar() -> AddLine("!LTPadPlane/position_map /Users/ejungwoo/lilak/lamps_2023/common/LAMPS_TPC_PAD_info_11");
+    LKWindowManager::GetWindowManager() -> CanvasSquare();
+    //auto hist = pp -> GetHist(0);
     auto hist = pp -> GetHist();
     hist -> Draw();
+    pp -> PadPositionChecker(false);
+    pp -> PadNeighborChecker();
+    pp -> PadMapChecker();
+    return;
 
     if (0) {
         auto graph = new TGraph();

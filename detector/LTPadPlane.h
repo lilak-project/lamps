@@ -28,6 +28,7 @@ class LTPadPlane : public LKDetectorPlane
 
         TH2* GetHist(Int_t selectSection);
         void Draw(Option_t *option="");
+        void Clear(Option_t *option="");
 
         Int_t FindPadID(Int_t cobo, Int_t aget, Int_t asad, Int_t chan);
         LKPad *GetPadFromEleID(Int_t cobo, Int_t aget, Int_t asad, Int_t chan);
@@ -48,7 +49,7 @@ class LTPadPlane : public LKDetectorPlane
         void WriteCurrentChannel(TString name="");
 
     private:
-        LKPad *NewPad(Int_t s, Int_t r, Int_t l);
+        LKPad *NewPad(Int_t section, Int_t layer, Int_t row);
         void SetNeighborPads(LKPad *pad0, LKPad *pad1);
         Int_t FindSection(Double_t i, Double_t j);
 
@@ -70,9 +71,12 @@ class LTPadPlane : public LKDetectorPlane
         Double_t fRMax = 545-41.5;
         //Double_t fRMin = 100.;
         //Double_t fRMax = 510;
-        Double_t fPadGap = 0.5;
-        Double_t fPadWidth = 3.;
-        Double_t fPadHeight = 10.;
+        //Double_t fPadGap = 0.5;
+        //Double_t fPadWidth = 3.;
+        //Double_t fPadHeight = 10.;
+        Double_t fPadGap = 0.0;
+        Double_t fPadWidth = 3.5;
+        Double_t fPadHeight = 10.5;
         Double_t fRadiusLayer0 = fRMin + 0.5*fPadHeight;
         Double_t fRTopCut = fRMax;
         Int_t fNumLayers = 42;
@@ -105,6 +109,7 @@ class LTPadPlane : public LKDetectorPlane
         const Bool_t fDoCutSideBoundary = true;
 
         int ****fMapCAACToPadID;
+        int ****fMapSLRPToPadID;
 
         int fSelectedSection = 0;
 
@@ -132,6 +137,8 @@ class LTPadPlane : public LKDetectorPlane
 
         int ConvHP(int bin) { return bin-1; }
         int ConvPH(int bin) { return bin+1; }
+
+        LKChannelAnalyzer* fChannelAnalyzer = nullptr;
 
     public:
         double GetPadCutBoundaryYAtX(double x) { return fTanPi3o8*(x-fDCX); }

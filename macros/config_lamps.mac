@@ -13,8 +13,10 @@ persistency/
 LTPadPlane/position_map     {lilak_common}/LAMPS_TPC_PAD_info_11_lilak
 
 LKEveTask/
-    drawEve3D false
-    #drawPlane
+    drawEve3D true
+    drawPlane true
+
+eve/planeFillType Hit
 
 LKPulseExtractionTask/
     analysisName        lampstpc_pulse

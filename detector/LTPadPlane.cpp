@@ -12,6 +12,7 @@
 
 #include "LKWindowManager.h"
 #include "GETChannel.h"
+#include "LKHit.h"
 
 #include <iostream>
 using namespace std;
@@ -51,6 +52,20 @@ bool LTPadPlane::Init()
     for (Int_t i = 0; i < 8; i++) {
         fCosPiNo4[i] = TMath::Cos(TMath::Pi()*i/4.);
         fSinPiNo4[i] = TMath::Sin(TMath::Pi()*i/4.);
+    }
+
+    fMapSLRPToPadID = new int***[8];
+    for (int section=0; section<8; ++section) {
+        fMapSLRPToPadID[section] = new int**[42];
+        for (int layer=0; layer<42; ++layer) {
+            fMapSLRPToPadID[section][layer] = new int*[56];
+            for (int row=0; row<56; ++row) {
+                fMapSLRPToPadID[section][layer][row] = new int[2];
+                for (int pm=0; pm<2; ++pm) {
+                    fMapSLRPToPadID[section][layer][row][pm] = -1;
+                }
+            }
+        }
     }
 
     for (auto section=0; section<8; ++section)
@@ -156,6 +171,7 @@ bool LTPadPlane::Init()
                 sideBoundaryCutWasMade = true;
                 if (xCorner[0] > GetPadCutBoundaryXAtR(radius2)) {
                     xCorner[0] = GetPadCutBoundaryXAtR(radius2);
+                    yCorner[0] = GetPadCutBoundaryYAtX(xCorner[0]);
                     yCorner[2] = GetPadCutBoundaryYAtX(xCorner[2]);
                     numCorners = 3;
                 }
@@ -167,7 +183,6 @@ bool LTPadPlane::Init()
                     xCorner[3] = GetPadCutBoundaryXAtR(radius1);
                     yCorner[3] = GetPadCutBoundaryYAtX(xCorner[3]);
                     if (layer>37&&row>fNumHalfRowsInLayerInput[layer]-3) {
-                        //lk_debug << layer << " " << row << " " << fNumHalfRowsInLayerInput[layer] << endl;
                         //+170  /home/ejungwoo/lilak/lamps_2023/detector/LTPadPlane.cpp # 38 39 40
                     }
                     if (row==fNumHalfRowsInLayerInput[layer]) {
@@ -206,9 +221,11 @@ bool LTPadPlane::Init()
                 for (int iRL : {0,1})
                 {
                     int signRL = iRL==0?1:-1;
-                    auto pad = NewPad(section, signRL*row, layer);
+                    int pm = iRL==0?1:0;
+                    auto pad = NewPad(section, layer, signRL*row);
                     auto padID = pad -> GetPadID();
-                    auto slr = iRL + 10*row + 1000*layer + 100000*section;
+                    fMapSLRPToPadID[section][layer][row][pm] = padID;
+                    //auto slr = iRL + 10*row + 1000*layer + 100000*section;
                     //fMapSLRToPadID.insert(std::pair<int,int>(slr,padID));
                     double xSum = 0;
                     double ySum = 0;
@@ -254,8 +271,6 @@ bool LTPadPlane::Init()
         }
     }
 
-    //for (auto layer=0; layer<fNumLayers; ++layer) lk_debug << layer << " " << fNumHalfRowsInLayer[layer] << endl;
-
     for (auto iLayer=fNumLayers-1; iLayer>=0; --iLayer) {
         fNumPadsDownToLayer[iLayer] = 2*fNumHalfRowsInLayer[iLayer] + fNumPadsDownToLayer[iLayer+1];
     }
@@ -289,19 +304,18 @@ bool LTPadPlane::Init()
     }
 
     fMapCAACToPadID = new int***[22];
-    for (int i=0; i<22; ++i) {
-        fMapCAACToPadID[i] = new int**[4];
-        for (int j=0; j<4; ++j) {
-            fMapCAACToPadID[i][j] = new int*[12];
-            for (int k=0; k<12; ++k) {
-                fMapCAACToPadID[i][j][k] = new int[68];
-                for (int l=0; l<68; ++l) {
-                    fMapCAACToPadID[i][j][k][l] = -1;
+    for (int cobo=0; cobo<22; ++cobo) {
+        fMapCAACToPadID[cobo] = new int**[4];
+        for (int aget=0; aget<4; ++aget) {
+            fMapCAACToPadID[cobo][aget] = new int*[12];
+            for (int asad=0; asad<12; ++asad) {
+                fMapCAACToPadID[cobo][aget][asad] = new int[68];
+                for (int chan=0; chan<68; ++chan) {
+                    fMapCAACToPadID[cobo][aget][asad][chan] = -1;
                 }
             }
         }
     }
-
 
     if (fPar -> CheckPar("LTPadPlane/position_map"))
     {
@@ -329,6 +343,7 @@ bool LTPadPlane::Init()
                 pad -> SetAsAdID(asad);
                 pad -> SetChannelID(channelID);
                 auto eleID = GetElectronicsID(cobo,aget,asad,channelID);
+                padID = FindPadID(x,y); // XXX
                 fMapCAACToPadID[cobo][aget][asad][channelID] = padID;
                 //e_cout << "input " << cobo << " " << aget << " " << asad << " " << channelID << " " << fMapCAACToPadID[cobo][aget][asad][channelID]  << endl;
             }
@@ -342,6 +357,15 @@ bool LTPadPlane::Init()
     //                e_cout << "mapped " << i << " " << j << " " << k << " " << l << " " << fMapCAACToPadID[i][j][k][l] << endl;
 
     SetDataFromBranch();
+
+    fAxis1 = LKVector3::kX;
+    fAxis2 = LKVector3::kY;
+    fAxis3 = LKVector3::kZ;
+    fAxisDrift = LKVector3::kZ;
+    fTbToLength = 2.34375;
+    fPosition = 900;
+
+    fChannelAnalyzer = GetChannelAnalyzer();
 
     return true;
 }
@@ -377,7 +401,7 @@ Int_t LTPadPlane::FindPadID(Double_t i, Double_t j)
 
     Int_t layer = (Int_t)(rFromSectionBottom/fRSpacing);
     if (layer > fNumLayers)
-        return -1;
+        return -2;
 
     Int_t pm = 1;
     if (xRotatedToSec0 < 0) {
@@ -386,17 +410,17 @@ Int_t LTPadPlane::FindPadID(Double_t i, Double_t j)
     }
 
     if (xRotatedToSec0 < .5*fPadGap)
-        return -1;
+        return -3;
 
     Double_t xFromRow0LeftEdge = xRotatedToSec0 - .5*fPadGap;
     Int_t row = (Int_t) (xFromRow0LeftEdge / fXSpacing) + 1;
     if (xFromRow0LeftEdge - (row-1)*fXSpacing > fPadWidth)
-        return -1;
+        return -4;
 
     row = row - fNumSkippedHalfRows[layer];
 
     if (row > fNumHalfRowsInLayer[layer])
-        return -1;
+        return -5;
 
     return FindPadID(section,layer,pm*row);
 }
@@ -617,10 +641,10 @@ TCanvas *LTPadPlane::GetCanvas(Option_t *)
     return fCanvas;
 }
 
-LKPad *LTPadPlane::NewPad(Int_t s, Int_t r, Int_t l)
+LKPad *LTPadPlane::NewPad(Int_t section, Int_t layer, Int_t row)
 {
     auto pad = new LKPad();
-    pad -> SetSectionRowLayer(s, r, l);
+    pad -> SetSectionLayerRow(section, layer, row);
     auto padID = fChannelArray -> GetEntriesFast();
     pad -> SetPadID(padID);
     fChannelArray -> Add(pad);
@@ -665,11 +689,29 @@ bool LTPadPlane::SetDataFromBranch()
     return true;
 }
 
+void LTPadPlane::Clear(Option_t *)
+{
+    LKDetectorPlane::Clear();
+    fHistPadPlane -> Reset("ICES");
+    fHistTopView -> Reset("ICES");
+    fHistSideView -> Reset("ICES");
+    fHistPadPlaneSection[0] -> Reset("ICES");
+    fHistPadPlaneSection[1] -> Reset("ICES");
+    fHistPadPlaneSection[2] -> Reset("ICES");
+    fHistPadPlaneSection[3] -> Reset("ICES");
+    fHistPadPlaneSection[4] -> Reset("ICES");
+    fHistPadPlaneSection[5] -> Reset("ICES");
+    fHistPadPlaneSection[6] -> Reset("ICES");
+    fHistPadPlaneSection[7] -> Reset("ICES");
+}
+
 void LTPadPlane::FillDataToHist()
 {
+    Clear();
+
     if (fPar -> CheckPar("eve/planeFillType")) {
         fFillType = fPar -> GetParString("eve/planeFillType");
-        if (fFillType!="Hit" || fFillType!="Buffer") {
+        if (fFillType!="Hit" && fFillType!="Buffer") {
             lk_warning << "eve/planeFillType must be Buffer or Hit" << endl;
             if (fBufferArray!=nullptr) fFillType = "Buffer";
             else if (fHitArray!=nullptr) fFillType = "Hit";
@@ -706,6 +748,26 @@ void LTPadPlane::FillDataToHist()
                 fHistWaveform -> Fill(tb,buffer[tb]);
             auto pad = LKDetectorPlane::GetPad(padID);
             pad -> SetBufferRaw(buffer);
+        }
+    }
+
+    if (fHitArray!=nullptr)
+    {
+        //fHitArray -> Print();
+        fHistWaveform -> Reset("ICES");
+
+        auto numHits = fHitArray -> GetEntries();
+        lk_info << "# of hits: " << numHits << endl;
+        for (auto iHit=0; iHit<numHits; ++iHit)
+        {
+            auto hit = (LKHit*) fHitArray -> At(iHit);
+            auto padID = hit -> GetChannelID();
+            if (padID<0) {
+                lk_warning << "padID is <0!" << endl;
+                continue;
+            }
+            auto pad = LKDetectorPlane::GetPad(padID);
+            pad -> AddHit(hit);
         }
     }
 
@@ -780,11 +842,34 @@ void LTPadPlane::FillDataToHist()
             }
         }
     }
+
     else if (fFillType=="Hit")
     {
         if (fHitArray==nullptr) {
             lk_error << "Fill type is " << fFillType << " but hit array is null!" << endl;
             return;
+        }
+        auto numHits = fHitArray -> GetEntries();
+        for (auto iHit=0; iHit<numHits; ++iHit)
+        {
+            auto hit = (LKHit*) fHitArray -> At(iHit);
+            auto padID = hit -> GetChannelID();
+            if (padID<0) {
+                lk_warning << "padID is <0!" << endl;
+                continue;
+            }
+            auto pad = LKDetectorPlane::GetPad(padID);
+            auto charge = hit -> GetCharge();
+            auto x = hit -> GetX();
+            auto y = hit -> GetY();
+            auto z = hit -> GetZ();
+            auto section = pad -> GetSection();
+            auto hbin = padID+5;
+            //fHistPadPlane -> //SetBinContent(hbin,charge);
+            fHistPadPlane -> Fill(x,y,charge);
+            fHistPadPlaneSection[section] -> Fill(x,y,charge);
+            fHistTopView -> Fill(z,x,charge);
+            fHistSideView -> Fill(z,y,charge);
         }
     }
 }
@@ -971,6 +1056,7 @@ void LTPadPlane::SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y)
 {
     auto padID = fHistPadPlane -> FindBin(x,y) - 1;
     fSelectedPad = LKDetectorPlane::GetPad(padID);
+    fSelectedPad -> Print();
     if (fSelectedPad==nullptr) {
         lk_error << endl;
         return;
@@ -1012,41 +1098,15 @@ void LTPadPlane::SelectAndDrawChannel(Int_t bin, Double_t x, Double_t y)
     histChannel -> Draw();
     histChannelPre -> Draw("same");
     fUseChannel1 = !fUseChannel1;
-}
 
-void LTPadPlane::WriteCurrentChannel(TString name)
-{
-    /*
-    if (fSelectedPad==nullptr)
-        return;
-
-    if (name.IsNull()) name = "selected_channel.root";
-    lk_info << "Creating " << name << endl;
-    auto fileTestChannel = new TFile(name,"recreate");
-    fSelectedPad -> Write("pad",TObject::kSingleKey);
-    for (auto hitArray : fHitArrayList) {
-        int countHitsInChannel = 0;
-        auto numHits = hitArray -> GetEntries();
-        for (auto iHit=0; iHit<numHits; ++iHit) {
-            auto hit = (LKHit *) hitArray -> At(iHit);
-            if (fCAAC==hit -> GetChannelID()) {
-                fileTestChannel -> cd();
-                hit -> Write(Form("hit%d",countHitsInChannel++),TObject::kSingleKey);
-            }
-        }
+    auto numHits = fSelectedPad -> GetNumHits();
+    for (auto iHit=0; iHit<numHits; ++iHit)
+    {
+        auto hit = fSelectedPad -> GetHit(iHit);
+        hit -> Print();
+        auto pulse = fChannelAnalyzer -> GetPulse();
+        auto graph = pulse -> GetPulseGraph(hit->GetTb(), hit->GetCharge(), hit->GetPedestal());
+        graph -> Draw("samelx");
     }
-    if (fPar!=nullptr) {
-        auto run = LKRun::GetRun();
-        if (run!=nullptr)
-            fPar -> AddPar("TTMicromegas/WriteCurrentChannel/eventID",LKRun::GetRun()->GetCurrentEventID());
-        fPar -> AddPar("TTMicromegas/WriteCurrentChannel/electronicsID",fCurrElectronicsID);
-        fPar -> Write(fPar->GetName(),TObject::kSingleKey);
-    }
-    if (fEventHeaderHolder!=nullptr) {
-        auto eventHeader = (TTEventHeader*) fEventHeaderHolder -> At(0);
-        if (eventHeader!=nullptr) {
-            eventHeader -> Write("EventHeader",TObject::kSingleKey);
-        }
-    }
-    */
+    histChannel -> SetTitle(Form("PadID=%d, position=(%.2f, %.2f), #Hits=%d",padID,fSelectedPad->GetI(),fSelectedPad->GetJ(),numHits));
 }
