@@ -348,12 +348,12 @@ bool LTPadPlane::Init()
     fMapCAACToPadID = new int***[22];
     for (int cobo=0; cobo<22; ++cobo) {
         fMapCAACToPadID[cobo] = new int**[4];
-        for (int aget=0; aget<4; ++aget) {
-            fMapCAACToPadID[cobo][aget] = new int*[12];
-            for (int asad=0; asad<12; ++asad) {
-                fMapCAACToPadID[cobo][aget][asad] = new int[68];
+        for (int asad=0; asad<4; ++asad) {
+            fMapCAACToPadID[cobo][asad] = new int*[4];
+            for (int aget=0; aget<4; ++aget) {
+                fMapCAACToPadID[cobo][asad][aget] = new int[68];
                 for (int chan=0; chan<68; ++chan) {
-                    fMapCAACToPadID[cobo][aget][asad][chan] = -1;
+                    fMapCAACToPadID[cobo][asad][aget][chan] = -1;
                 }
             }
         }
@@ -381,12 +381,11 @@ bool LTPadPlane::Init()
             if (padID>=0) {
                 auto pad = GetPad(padID);
                 pad -> SetCoboID(cobo);
-                pad -> SetAGETID(aget);
                 pad -> SetAsAdID(asad);
+                pad -> SetAGETID(aget);
                 pad -> SetChannelID(channelID);
-                auto eleID = GetElectronicsID(cobo,aget,asad,channelID);
                 padID = FindPadID(x,y); // XXX
-                fMapCAACToPadID[cobo][aget][asad][channelID] = padID;
+                fMapCAACToPadID[cobo][asad][aget][channelID] = padID;
                 //e_cout << "input " << cobo << " " << aget << " " << asad << " " << channelID << " " << fMapCAACToPadID[cobo][aget][asad][channelID]  << endl;
             }
         }
@@ -432,10 +431,9 @@ Int_t LTPadPlane::FindPadID(Int_t section, Int_t layer, Int_t row)
     return padID;
 }
 
-Int_t LTPadPlane::FindPadID(Int_t cobo, Int_t aget, Int_t asad, Int_t chan)
+Int_t LTPadPlane::FindPadID(Int_t cobo, Int_t asad, Int_t aget, Int_t chan)
 {
-    //auto eleID = GetElectronicsID(cobo,aget,asad,channelID);
-    auto padID = fMapCAACToPadID[cobo][aget][asad][chan];
+    auto padID = fMapCAACToPadID[cobo][asad][aget][chan];
     return padID;
 }
 
@@ -475,15 +473,6 @@ Int_t LTPadPlane::FindPadID(Double_t i, Double_t j)
         return -5;
 
     return FindPadID(section,layer,pm*row);
-}
-
-LKPad *LTPadPlane::GetPadFromEleID(Int_t cobo, Int_t aget, Int_t asad, Int_t chan)
-{
-    LKPad *pad = nullptr;
-    auto padID = FindPadID(cobo,aget,asad,chan);
-    if (padID>=0)
-        pad = LKDetectorPlane::GetPad(padID);
-    return pad;
 }
 
 Double_t LTPadPlane::PadDisplacement() const
@@ -526,7 +515,7 @@ void LTPadPlane::CreateHistograms()
     if (fFramePadPlane!=nullptr)
         return;
 
-    fPar -> UpdateParDouble("LTPadPlane/histZMin",fHistZMin);
+    fPar -> UpdatePar(fHistZMin,"LTPadPlane/histZMin");
 
     fFramePadPlane = new TH2Poly("frameLTPP","LAMPS TPC Pad Plane;x (mm);y (mm)",fXMin,fXMax,fYMin,fYMax);
     fFramePadPlane -> SetStats(0);
@@ -795,9 +784,9 @@ void LTPadPlane::FillDataToHist()
 
     if (fPar -> CheckPar("eve/planeFillType")) {
         fFillType = fPar -> GetParString("eve/planeFillType");
-        if (fFillType!="Hit" && fFillType!="Buffer") {
-            lk_warning << "eve/planeFillType must be Buffer or Hit" << endl;
-            if (fBufferArray!=nullptr) fFillType = "Buffer";
+        if (fFillType!="Hit" && fFillType!="Raw") {
+            lk_warning << "eve/planeFillType must be Raw or Hit" << endl;
+            if (fBufferArray!=nullptr) fFillType = "Raw";
             else if (fHitArray!=nullptr) fFillType = "Hit";
         }
     }
@@ -817,7 +806,7 @@ void LTPadPlane::FillDataToHist()
                 auto asad = channel -> GetAsad();
                 auto aget = channel -> GetAget();
                 auto chan = channel -> GetChan();
-                padID = FindPadID(cobo,aget,asad,chan);
+                padID = FindPadID(cobo,asad,aget,chan);
             }
             if (padID<0) {
                 auto cobo = channel -> GetCobo();
@@ -855,7 +844,7 @@ void LTPadPlane::FillDataToHist()
         }
     }
 
-    if (fFillType=="Buffer")
+    if (fFillType=="Raw")
     {
         if (fBufferArray==nullptr) {
             lk_error << "Fill type is " << fFillType << " but buffer array is null!" << endl;
@@ -878,7 +867,7 @@ void LTPadPlane::FillDataToHist()
                 auto asad = channel -> GetAsad();
                 auto aget = channel -> GetAget();
                 auto chan = channel -> GetChan();
-                padID = FindPadID(cobo,aget,asad,chan);
+                padID = FindPadID(cobo,asad,aget,chan);
             }
             if (padID<0) {
                 //auto cobo = channel -> GetCobo();
@@ -970,7 +959,7 @@ void LTPadPlane::Draw(Option_t *option)
         CreateHistograms();
         FillDataToHist();
     }
-    fPar -> UpdateParDouble("LTPadPlane/histZMin",fHistZMin);
+    fPar -> UpdatePar(fHistZMin,"LTPadPlane/histZMin");
 
     auto cvs = GetCanvas();
 

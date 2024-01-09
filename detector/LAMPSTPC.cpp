@@ -123,35 +123,3 @@ bool LAMPSTPC::GetEffectiveDimension(Double_t &x1, Double_t &y1, Double_t &z1, D
     z2 = 1350;
     return true;
 }
-
-int LAMPSTPC::GetElectronicsID(int caac) {
-    auto caac0 = caac;
-    auto cobo = int(caac0/10000); caac0 -= cobo*10000;
-    auto asad = int(caac0/1000); caac0 -= asad*1000;
-    auto aget = int(caac0/100); caac0 -= aget*100;
-    auto chan = caac0;
-    return GetElectronicsID(cobo, asad, aget, chan);
-}
-
-int LAMPSTPC::GetElectronicsID(int cobo, int asad, int aget, int chan)
-{
-    return 0;
-}
-
-void LAMPSTPC::CAACToGlobalPosition(Int_t caac,
-        Double_t &posx, Double_t &posy, Double_t &posz,
-        Double_t &errx, Double_t &erry, Double_t &errz)
-{
-    auto caac0 = caac;
-    auto cobo = int(caac0/10000); caac0 -= cobo*10000;
-    auto asad = int(caac0/1000); caac0 -= asad*1000;
-    auto aget = int(caac0/100); caac0 -= aget*100;
-    auto chan = caac0;
-    CAACToGlobalPosition(cobo,asad,aget,chan,posx,posy,posz,errx,erry,errz);
-}
-
-void LAMPSTPC::CAACToGlobalPosition(Int_t Cobo, Int_t Asad, Int_t Aget, Int_t Chan,
-        Double_t &posx, Double_t &posy, Double_t &posz,
-        Double_t &errx, Double_t &erry, Double_t &errz)
-{
-}

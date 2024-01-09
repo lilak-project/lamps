@@ -30,9 +30,7 @@ class LTPadPlane : public LKDetectorPlane
         void Draw(Option_t *option="");
         void Clear(Option_t *option="");
 
-        Int_t FindPadID(Int_t cobo, Int_t aget, Int_t asad, Int_t chan);
-        LKPad *GetPadFromEleID(Int_t cobo, Int_t aget, Int_t asad, Int_t chan);
-        int GetElectronicsID(int cobo, int aget, int asad, int channelID) { return 100000*cobo + 10000*aget + 100*asad + channelID; }
+        Int_t FindPadID(Int_t cobo, Int_t asad, Int_t aget, Int_t chan);
 
         void GetSectionParameters(Int_t section, Double_t &t1, Double_t &t2, Double_t &xmin, Double_t &xmax, Double_t &ymin, Double_t &ymax);
         void CreateHistograms();

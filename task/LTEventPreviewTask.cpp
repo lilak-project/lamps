@@ -33,8 +33,7 @@ void LTEventPreviewTask::Exec(Option_t *option)
         auto asad = channel -> GetAsad();
         auto aget = channel -> GetAget();
         auto chan = channel -> GetChan();
-        //auto padID = fPadPlane -> FindPadID(cobo, aget, asad, chan);
-        auto pad = fPadPlane -> GetPadFromEleID(cobo, aget, asad, chan);
+        auto pad = fPadPlane -> GetPad(cobo, asad, aget, chan);
         if (pad==nullptr)
             continue;
         channel -> SetChan2(pad->GetPadID());
