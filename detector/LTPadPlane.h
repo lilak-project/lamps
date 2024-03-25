@@ -47,7 +47,7 @@ class LTPadPlane : public LKEvePlane
         double fYMax = +550;
         double fZMin = -350;
         double fZMax = 1350;
-        int fZBins = 128;
+        int fZBins = 512;
 
         double fHistZMin = 0.1;
 
@@ -91,6 +91,7 @@ class LTPadPlane : public LKEvePlane
         const bool fDoCutTopBoundary = true;
         const bool fDoCutSideBoundary = true;
 
+        const int fMaxCobo = 22;
         int ****fMapCAACToPadID;
         int ****fMapSLRPToPadID;
 

@@ -371,7 +371,7 @@ bool LTPadPlane::Init()
     }
     */
 
-    fMapCAACToPadID = new int***[22];
+    fMapCAACToPadID = new int***[fMaxCobo];
     for (int cobo=0; cobo<22; ++cobo) {
         fMapCAACToPadID[cobo] = new int**[4];
         for (int asad=0; asad<4; ++asad) {
@@ -517,13 +517,13 @@ TH2* LTPadPlane::GetHistEventDisplay1(Option_t* option)
     {
         if (fDefinePositionByPixelIndex)
         {
-            fHistHeadView = new TH2D("histLTTV", "LAMPS TPC Head View;z (mm);x (mm)",128,0,512,2*fNumLayers,fXMin,fXMax);
+            fHistHeadView = new TH2D("histLTTV", "LAMPS-TPC Head View;time-bucket;x (mm)",128,0,512,2*fNumLayers,fXMin,fXMax);
             fHistHeadView -> SetStats(0);
             fHistHeadView -> GetXaxis() -> SetTickLength(0.01);
             fHistHeadView -> GetYaxis() -> SetTickLength(0.01);
             fHistHeadView -> SetMinimum(fHistZMin);
 
-            fHistSideView = new TH2D("histLTSV", "LAMPS TPC Side View;z (mm);y (mm)",128,0,512,2*fNumLayers,fYMin,fYMax);
+            fHistSideView = new TH2D("histLTSV", "LAMPS-TPC Side View;time-bucket;y (mm)",128,0,512,2*fNumLayers,fYMin,fYMax);
             fHistSideView -> SetStats(0);
             fHistSideView -> GetXaxis() -> SetTickLength(0.01);
             fHistSideView -> GetYaxis() -> SetTickLength(0.01);
@@ -531,13 +531,13 @@ TH2* LTPadPlane::GetHistEventDisplay1(Option_t* option)
         }
         else
         {
-            fHistHeadView = new TH2D("histLTTV", "LAMPS TPC Head View;z (mm);x (mm)",fZBins,fZMin,fZMax,2*fNumLayers,fXMin,fXMax);
+            fHistHeadView = new TH2D("histLTTV", "LAMPS-TPC Head View;z (mm);x (mm)",fZBins,fZMin,fZMax,2*fNumLayers,fXMin,fXMax);
             fHistHeadView -> SetStats(0);
             fHistHeadView -> GetXaxis() -> SetTickLength(0.01);
             fHistHeadView -> GetYaxis() -> SetTickLength(0.01);
             fHistHeadView -> SetMinimum(fHistZMin);
 
-            fHistSideView = new TH2D("histLTSV", "LAMPS TPC Side View;z (mm);y (mm)",fZBins,fZMin,fZMax,2*fNumLayers,fYMin,fYMax);
+            fHistSideView = new TH2D("histLTSV", "LAMPS-TPC Side View;z (mm);y (mm)",fZBins,fZMin,fZMax,2*fNumLayers,fYMin,fYMax);
             fHistSideView -> SetStats(0);
             fHistSideView -> GetXaxis() -> SetTickLength(0.01);
             fHistSideView -> GetYaxis() -> SetTickLength(0.01);
@@ -562,12 +562,12 @@ TH2* LTPadPlane::GetHistEventDisplay2(Option_t* option)
 {
     if (fGridPadPlane==nullptr)
     {
-        fGridPadPlane = new TH2Poly("frameLTPP","LAMPS TPC Pad Plane;x (mm);y (mm)",fXMin,fXMax,fYMin,fYMax);
+        fGridPadPlane = new TH2Poly("frameLTPP","LAMPS-TPC Pad Plane;x (mm);y (mm)",fXMin,fXMax,fYMin,fYMax);
         fGridPadPlane -> SetStats(0);
         fGridPadPlane -> GetXaxis() -> SetTickLength(0.01);
         fGridPadPlane -> GetYaxis() -> SetTickLength(0.01);
 
-        fHistPadPlane = new TH2Poly("histLTPP", "LAMPS TPC Pad Plane;x (mm);y (mm)",fXMin,fXMax,fYMin,fYMax);
+        fHistPadPlane = new TH2Poly("histLTPP", "LAMPS-TPC Pad Plane;x (mm);y (mm)",fXMin,fXMax,fYMin,fYMax);
         fHistPadPlane -> SetStats(0);
         fHistPadPlane -> GetXaxis() -> SetTickLength(0.01);
         fHistPadPlane -> GetYaxis() -> SetTickLength(0.01);
@@ -578,13 +578,13 @@ TH2* LTPadPlane::GetHistEventDisplay2(Option_t* option)
             double t1, t2, xmin, xmax, ymin, ymax;
             GetSectionParameters(section,t1,t2,xmin,xmax,ymin,ymax);
 
-            fGridSectView[section] = new TH2Poly(Form("frameLTPP_S%d",section),Form("LAMPS TPC Pad Plane Section-%d;x (mm);y (mm)",section),xmin,xmax,ymin,ymax);
+            fGridSectView[section] = new TH2Poly(Form("frameLTPP_S%d",section),Form("LAMPS-TPC Pad Plane Section-%d;x (mm);y (mm)",section),xmin,xmax,ymin,ymax);
             fGridSectView[section] -> SetStats(0);
             fGridSectView[section] -> GetXaxis() -> SetTickLength(0.01);
             fGridSectView[section] -> GetYaxis() -> SetTickLength(0.01);
             fGridSectView[section] -> SetMinimum(fHistZMin);
 
-            fHistSectView[section] = new TH2Poly(Form("histLTPP_S%d",section),Form("LAMPS TPC Pad Plane Section-%d;x (mm);y (mm)",section),xmin,xmax,ymin,ymax);
+            fHistSectView[section] = new TH2Poly(Form("histLTPP_S%d",section),Form("LAMPS-TPC Pad Plane Section-%d;x (mm);y (mm)",section),xmin,xmax,ymin,ymax);
             fHistSectView[section] -> SetStats(0);
             fHistSectView[section] -> GetXaxis() -> SetTickLength(0.01);
             fHistSectView[section] -> GetYaxis() -> SetTickLength(0.01);
@@ -656,11 +656,11 @@ TH2* LTPadPlane::GetHistEventDisplay2(Option_t* option)
                 graphBin -> SetLineColor(kGray+1);
             }
         }
+
+        fHistEventDisplay2 = fHistPadPlane;
+        fHistEventDisplay1 = fHistSectView[fSelectedSection];
     }
 
-    fHistEventDisplay2 = fHistPadPlane;
-    fHistEventDisplay1 = fHistSectView[fSelectedSection];
-    
     return (TH2*) fHistPadPlane;
 }
 
@@ -688,14 +688,22 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         fHistSectView[7] -> Reset("ICES");
     }
 
+    Long64_t currentEventID = 0;
+    if (fRun!=nullptr)
+        currentEventID = fRun -> GetCurrentEventID();
+
     TString optionString(option);
+    if (!fFillOptionSelected.IsNull())
+        optionString = fFillOptionSelected;
+    if (optionString.IsNull())
+        optionString = "preview";
     optionString.ToLower();
+    lk_info << "Filling " << optionString << " (" << currentEventID << ")" << endl;
 
     LKPhysicalPad *pad = nullptr;
     TString title;
 
-    if (optionString.Index("caac")>=0) {
-        if (fAccumulateEvents==0) lk_info << "Filling caac to plane" << endl;
+    if (optionString.Index("caac")==0) {
         title = "caac";
         int maxCAAC = 0;
         TIter nextRawData(fChannelArray);
@@ -707,11 +715,11 @@ void LTPadPlane::FillDataToHist(Option_t* option)
             fHistPadPlane -> Fill(x,y,caac);
             fHistSectView[pad->GetSection()] -> Fill(x,y,caac);
         }
+        lk_debug << fEnergyMax << endl;
         fEnergyMax = maxCAAC;
     }
-    else if (optionString.Index("cobo")>=0) {
-        fEnergyMax = 4;
-        if (fAccumulateEvents==0) lk_info << "Filling cobo to plane" << endl;
+    else if (optionString.Index("cobo")==0) {
+        fEnergyMax = fMaxCobo;
         title = "cobo";
         TIter nextRawData(fChannelArray);
         while ((pad = (LKPhysicalPad *) nextRawData())) {
@@ -719,9 +727,8 @@ void LTPadPlane::FillDataToHist(Option_t* option)
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetCoboID());
         }
     }
-    else if (optionString.Index("asad")>=0) {
+    else if (optionString.Index("asad")==0) {
         fEnergyMax = 4;
-        if (fAccumulateEvents==0) lk_info << "Filling asad to plane" << endl;
         title = "asad";
         TIter nextRawData(fChannelArray);
         while ((pad = (LKPhysicalPad *) nextRawData())) {
@@ -729,9 +736,8 @@ void LTPadPlane::FillDataToHist(Option_t* option)
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetAsadID());
         }
     }
-    else if (optionString.Index("aget")>=0) {
+    else if (optionString.Index("aget")==0) {
         fEnergyMax = 4;
-        if (fAccumulateEvents==0) lk_info << "Filling aget to plane" << endl;
         title = "aget";
         TIter nextRawData(fChannelArray);
         while ((pad = (LKPhysicalPad *) nextRawData())) {
@@ -739,9 +745,8 @@ void LTPadPlane::FillDataToHist(Option_t* option)
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetAgetID());
         }
     }
-    else if (optionString.Index("chan")>=0) {
+    else if (optionString.Index("chan")==0) {
         fEnergyMax = 70;
-        if (fAccumulateEvents==0) lk_info << "Filling chan to plane" << endl;
         title = "chan";
         TIter nextRawData(fChannelArray);
         while ((pad = (LKPhysicalPad *) nextRawData())) {
@@ -750,9 +755,8 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         }
     }
 
-    else if (optionString.Index("section")>=0) {
+    else if (optionString.Index("section")==0) {
         fEnergyMax = 100;
-        if (fAccumulateEvents==0) lk_info << "Filling section to plane" << endl;
         title = "section";
         TIter nextRawData(fChannelArray);
         while ((pad = (LKPhysicalPad *) nextRawData())) {
@@ -760,9 +764,8 @@ void LTPadPlane::FillDataToHist(Option_t* option)
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetChannelID());
         }
     }
-    else if (optionString.Index("layer")>=0) {
+    else if (optionString.Index("layer")==0) {
         fEnergyMax = 100;
-        if (fAccumulateEvents==0) lk_info << "Filling layer to plane" << endl;
         title = "layer";
         TIter nextRawData(fChannelArray);
         while ((pad = (LKPhysicalPad *) nextRawData())) {
@@ -770,10 +773,9 @@ void LTPadPlane::FillDataToHist(Option_t* option)
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetLayer());
         }
     }
-    else if (optionString.Index("row")>=0) {
+    else if (optionString.Index("row")==0) {
         fEnergyMax = 100;
-        if (fAccumulateEvents==0) lk_info << "Filling row to plane" << endl;
-        title = "raw";
+        title = "row";
         TIter nextRawData(fChannelArray);
         while ((pad = (LKPhysicalPad *) nextRawData())) {
             fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetRow());
@@ -781,9 +783,8 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         }
     }
 
-    else if (optionString.Index("padid")>=0) {
+    else if (optionString.Index("padid")==0) {
         fEnergyMax = 100;
-        if (fAccumulateEvents==0) lk_info << "Filling pad id to plane" << endl;
         title = "id";
         TIter nextRawData(fChannelArray);
         while ((pad = (LKPhysicalPad *) nextRawData())) {
@@ -791,9 +792,8 @@ void LTPadPlane::FillDataToHist(Option_t* option)
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetPadID());
         }
     }
-    else if (optionString.Index("nhit")>=0) {
+    else if (optionString.Index("nhit")==0) {
         fEnergyMax = 10;
-        if (fAccumulateEvents==0) lk_info << "Filling number of hits to plane" << endl;
         title = "nhit";
         TIter nextRawData(fChannelArray);
         while ((pad = (LKPhysicalPad *) nextRawData())) {
@@ -801,9 +801,8 @@ void LTPadPlane::FillDataToHist(Option_t* option)
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetNumHits());
         }
     }
-    else if (optionString.Index("hit")>=0&&fHitArray!=nullptr)
+    else if (optionString.Index("hit")==0&&fHitArray!=nullptr)
     {
-        if (fAccumulateEvents==0) lk_info << "Filling hit to plane" << endl;
         title = "Hit";
         TIter nextHit(fHitArray);
         LKHit* hit = nullptr;
@@ -820,43 +819,79 @@ void LTPadPlane::FillDataToHist(Option_t* option)
             fHistSideView -> Fill(z,y,charge);
         }
     }
-
-    //else if (optionString.Index("raw")>=0&&fRawDataArray!=nullptr)
-    else if (fRawDataArray!=nullptr)
+    else if (optionString.Index("preview")==0)
     {
-        if (fAccumulateEvents==0) lk_info << "Filling raw data to plane" << endl;
-        title = "Raw Data";
-        TIter nextPad(fChannelArray);
-        while (pad = (LKPhysicalPad*) nextPad())
+        if (fRawDataArray!=nullptr)
         {
-            auto padID = pad -> GetPadID();
-            auto idx = pad -> GetDataIndex();
-            if (idx<0)
-                continue;
+            title = "Preview Data";
+            TIter nextPad(fChannelArray);
+            while (pad = (LKPhysicalPad*) nextPad())
+            {
+                auto padID = pad -> GetPadID();
+                auto idx = pad -> GetDataIndex();
+                if (idx<0)
+                    continue;
 
-            auto x = pad -> GetX();
-            auto y = pad -> GetY();
-            auto section = pad -> GetSection();
+                auto x = pad -> GetX();
+                auto y = pad -> GetY();
+                auto section = pad -> GetSection();
 
-            auto channel = (GETChannel*) fRawDataArray -> At(idx);
-            auto buffer = channel -> GetWaveformY();
-            auto pedestal = channel -> GetPedestal();
-            auto energy = channel -> GetEnergy();
-            auto time = channel -> GetTime();
+                auto channel = (GETChannel*) fRawDataArray -> At(idx);
+                auto buffer = channel -> GetWaveformY();
+                auto pedestal = channel -> GetPedestal();
+                auto energy = channel -> GetEnergy();
+                auto time = channel -> GetTime();
 
-            fHistPadPlane -> Fill(x,y,energy);
-            fHistSectView[section] -> Fill(x,y,energy);
-            if (fDefinePositionByPixelIndex) {
-                for (auto tb=0; tb<512; ++tb) {
-                    fHistHeadView -> Fill(tb,x,buffer[tb]);
-                    fHistSideView -> Fill(tb,y,buffer[tb]);
+                fHistPadPlane -> Fill(x,y,energy);
+                fHistSectView[section] -> Fill(x,y,energy);
+                if (fDefinePositionByPixelIndex) {
+                    for (auto tb=0; tb<512; ++tb) {
+                        fHistHeadView -> Fill(tb,x,buffer[tb]);
+                        fHistSideView -> Fill(tb,y,buffer[tb]);
+                    }
+                }
+                else {
+                    fHistHeadView -> Fill(time,x,energy);
+                    fHistSideView -> Fill(time,y,energy);
                 }
             }
-            //for (auto icb=0; icb<numCollectBin; ++icb) {
-            //    fHistHeadView ->  Fill(bin[icb],x,max[icb]);
-            //    fHistSideView -> Fill(bin[icb],y,max[icb]);
-            //}
         }
+        else
+            lk_error << "Raw-data array is null" << endl;
+    }
+    else if (optionString.Index("raw")==0)
+    {
+        if (fRawDataArray!=nullptr)
+        {
+            title = "Preview Data";
+            TIter nextPad(fChannelArray);
+            while (pad = (LKPhysicalPad*) nextPad())
+            {
+                auto padID = pad -> GetPadID();
+                auto idx = pad -> GetDataIndex();
+                if (idx<0)
+                    continue;
+
+                auto x = pad -> GetX();
+                auto y = pad -> GetY();
+                auto section = pad -> GetSection();
+
+                auto channel = (GETChannel*) fRawDataArray -> At(idx);
+                auto buffer = channel -> GetWaveformY();
+                double energy = 0.;
+                for (auto tb=0; tb<512; ++tb) energy += buffer[tb];
+                fHistPadPlane -> Fill(x,y,energy);
+                fHistSectView[section] -> Fill(x,y,energy);
+                if (fDefinePositionByPixelIndex) {
+                    for (auto tb=0; tb<512; ++tb) {
+                        fHistHeadView -> Fill(tb,x,buffer[tb]);
+                        fHistSideView -> Fill(tb,y,buffer[tb]);
+                    }
+                }
+            }
+        }
+        else
+            lk_error << "Raw-data array is null" << endl;
     }
 
     TString eventTitle = "";
@@ -865,25 +900,15 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         if (inputFile!=nullptr)
         {
             if (fAccumulateEvents==0)
-                eventTitle = Form("%s (event %lld)", inputFile->GetName(), fRun->GetCurrentEventID());
+                eventTitle = Form("%s (event %lld) [%s]", inputFile->GetName(), currentEventID, optionString.Data());
             else
-                eventTitle = Form("%s (event %lld - %lld)", inputFile->GetName(), fAccumulateEvent1, fAccumulateEvent2);
+                eventTitle = Form("%s (event %lld - %lld) [%s]", inputFile->GetName(), fAccumulateEvent1, fAccumulateEvent2, optionString.Data());
         }
         else
-            eventTitle = Form("%s (event %lld)", fRun->GetRunName(), fRun->GetCurrentEventID());
+            eventTitle = Form("%s (event %lld) [%s]", fRun->GetRunName(), currentEventID, optionString.Data());
     }
 
     fGridPadPlane -> SetTitle(eventTitle);
-    //fHistHeadView    -> SetTitle(eventTitle);
-    //fHistSideView    -> SetTitle(eventTitle);
-    //fGridSectView[0] -> SetTitle(eventTitle);
-    //fGridSectView[1] -> SetTitle(eventTitle);
-    //fGridSectView[2] -> SetTitle(eventTitle);
-    //fGridSectView[3] -> SetTitle(eventTitle);
-    //fGridSectView[4] -> SetTitle(eventTitle);
-    //fGridSectView[5] -> SetTitle(eventTitle);
-    //fGridSectView[6] -> SetTitle(eventTitle);
-    //fGridSectView[7] -> SetTitle(eventTitle);
 }
 
 LKChannelAnalyzer* LTPadPlane::GetChannelAnalyzer(int)
@@ -985,9 +1010,24 @@ void LTPadPlane::ClickedEventDisplay1(double xOnClick, double yOnClick)
 void LTPadPlane::ClickedEventDisplay2(double xOnClick, double yOnClick)
 {
     int selectedBin = fGridPadPlane -> FindBin(xOnClick, yOnClick);
-    if (selectedBin==fBinNumberSideView) { fSelectedSection = 9; fHistEventDisplay1 = fHistSideView; }
-    else if (selectedBin==fBinNumberHeadView) { fSelectedSection = 8; fHistEventDisplay1 = fHistHeadView; }
-    else { fSelectedSection = FindSection(xOnClick,yOnClick); fHistEventDisplay1 = fHistSectView[fSelectedSection]; }
+    if (selectedBin==fBinNumberSideView) {
+        fSelectedSection = 9;
+        fHistEventDisplay1 = fHistSideView;
+        fPadAxis1[0] = LKVector3::kZ;
+        fPadAxis2[0] = LKVector3::kY;
+    }
+    else if (selectedBin==fBinNumberHeadView) {
+        fSelectedSection = 8;
+        fHistEventDisplay1 = fHistHeadView;
+        fPadAxis1[0] = LKVector3::kZ;
+        fPadAxis2[0] = LKVector3::kX;
+    }
+    else {
+        fSelectedSection = FindSection(xOnClick,yOnClick);
+        fHistEventDisplay1 = fHistSectView[fSelectedSection];
+        fPadAxis1[0] = LKVector3::kX;
+        fPadAxis2[0] = LKVector3::kY;
+    }
     UpdateEventDisplay1();
 }
 
@@ -1006,7 +1046,7 @@ void LTPadPlane::UpdateEventDisplay1()
         if (fEnergyMax>100)
             gStyle -> SetNumberContours(100);
         else
-            gStyle -> SetNumberContours(fEnergyMax);
+            gStyle -> SetNumberContours(fEnergyMax-fEnergyMin);
     }
     //fGridPadPlane -> Draw(fEventDisplayDrawOption);
     //fHistPadPlane -> Draw(fEventDisplayDrawOption);
@@ -1061,7 +1101,7 @@ void LTPadPlane::UpdateEventDisplay2()
         if (fEnergyMax>100)
             gStyle -> SetNumberContours(100);
         else
-            gStyle -> SetNumberContours(fEnergyMax);
+            gStyle -> SetNumberContours(fEnergyMax-fEnergyMin);
     }
     //fHistEventDisplay2 -> Draw(fEventDisplayDrawOption);
     fGridPadPlane -> Draw();
