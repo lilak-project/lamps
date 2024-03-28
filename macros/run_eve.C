@@ -1,8 +1,8 @@
-void next(int eventID=-1) {
-    if (eventID>=0)
-        LKRun::GetRun()->ExecuteEvent(eventID);
-    else
-        LKRun::GetRun()->ExecuteNextEvent();
+void next(int eventID=-1)
+{
+    if (eventID==0) LKRun::GetRun()->ExecuteNextEvent();
+    if (eventID>=0) LKRun::GetRun()->ExecuteEvent(eventID);
+    else LKRun::GetRun() -> RunSelectedEvent("@RawData.GetEntries()>0");
 }
 
 #include "LKLogger.h"
@@ -11,16 +11,14 @@ void run_eve()
 {
     lk_logger("log/eve.log");
     auto run = new LKRun();
-    run -> SetTag("eve");
-    run -> AddPar("config_lamps.mac");
-    run -> AddInputFile("data/lamps_0000.0.all.root");
+    run -> AddPar("config_eve.mac");
+    run -> AddDetector(new LAMPSTPC());
     run -> Add(new LKPulseShapeAnalysisTask);
     run -> Add(new LTHelixTrackFindingTask);
     run -> Add(new LKEveTask);
-    run -> AddDetector(new LAMPSTPC());
     run -> Init();
 
-    next();
-    //next(8);
+    next(0);
+    //next(15);
     //next(39);
 }

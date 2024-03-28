@@ -1,0 +1,18 @@
+<config_lamps config_lamps.mac
+
+LKRun/RunName lamps
+LKRun/RunID   0123
+*LKRun/Tag    eve
+#*&LKRun/InputFile    lamps_0123.storage0123.root
+*&LKRun/InputFile    /home/ejungwoo/data/lamps/lamps_0123.all.root
+
+LKEveTask/
+    drawEve3D false
+    drawPlane true
+
+eve/planeFillType Raw
+
+LKGETChannelViewer/MaxCobo          22
+LKGETChannelViewer/MaxAsad          4
+LKGETChannelViewer/MaxAget          4
+LKGETChannelViewer/MaxChannels      68

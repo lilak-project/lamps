@@ -1,0 +1,8 @@
+<config_lamps config_lamps.mac
+
+*LKRun/Tag                          viewer
+
+LKGETChannelViewer/MaxCobo          22
+LKGETChannelViewer/MaxAsad          4
+LKGETChannelViewer/MaxAget          4
+LKGETChannelViewer/MaxChannels      68

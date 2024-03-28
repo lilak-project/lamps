@@ -1,24 +1,5 @@
-data   /home/cens-alpha-00/data/lamps/run_0123.dat.14-12-23_14h29m55s.mfm
-run    0
-split  0
-size   0
-
-*LKRun/RunName lamps {run} {split}
-*LKRun/DataPath {lilak_data}
-
-persistency/
-    RawData     true
-    FrameHeader true
-
-LTPadPlane/position_map     {lilak_common}/LAMPS_TPC_PAD_info_11_lilak
-
-LKEveTask/
-    drawEve3D true
-    drawPlane true
-
-eve/planeFillType Hit
-
-LTPadPlane/pulseFile {lilak_common}/pulseReference_lampstpc_pulse.root
+lamps/position_map     {lilak_common}/LAMPS_TPC_PAD_info_11_lilak
+lamps/pulseFile        {lilak_common}/pulseReference_lampstpc_pulse.root
 
 LKPulseExtractionTask/
     analysisName        lampstpc_pulse

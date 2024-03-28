@@ -1,0 +1,27 @@
+<config_lamps config_lamps.mac 
+
+LKRun/DataPath  e{PWD}/data/
+LKRun/Name      lamps
+LKRun/RunID     123
+#LKRun/Division  0
+#*LKRun/Tag       storage0
+#*LKRun/Tag       storage01
+#*LKRun/Tag       storage012
+#*LKRun/Tag       storage0123
+#*LKRun/Tag       storage01234
+#*LKRun/Tag       0to4
+#*LKRun/Tag       0to17 # OK!!!
+#*LKRun/Tag       0to18
+#*LKRun/Tag       storage4
+*LKRun/Tag       all
+
+LKMFMConversionTask/InputFileName   /home/ejungwoo/data/lamps/lamps_0123_{LKRun/Tag}.mfm # OK
+
+LKFrameBuilder/Set2PMode   false
+LKFrameBuilder/SetScaler   false
+LKFrameBuilder/MaxCobo     22 # maximum number of CoBo
+LKFrameBuilder/MaxAsad     4 # maximum number of AsAd in one CoBo
+LKFrameBuilder/MaxAget     4 # maximum number of AGET in one AsAd
+LKFrameBuilder/MaxChannels 68 # maximum number of channels in AGET
+#LKFrameBuilder/FrameFormat #{lilak_common}/CoboFormats.xcfg
+#LKFrameBuilder/ScalerFile  # if exist
