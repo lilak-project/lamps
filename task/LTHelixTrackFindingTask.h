@@ -1,7 +1,7 @@
 #ifndef LTHELIXTRACKFINDINGTASK_HH
 #define LTHELIXTRACKFINDINGTASK_HH
 
-#define DEBUG_STEP -1
+//#define DEBUG_STEP -1
 
 #include "TClonesArray.h"
 #include "TGraphErrors.h"

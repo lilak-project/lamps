@@ -36,7 +36,7 @@ void LTEventPreviewTask::Exec(Option_t *option)
         auto pad = fPadPlane -> GetPad(cobo, asad, aget, chan);
         if (pad==nullptr)
             continue;
-        channel -> SetChan2(pad->GetPadID());
+        channel -> SetPadID(pad->GetPadID());
     }
 
     auto frameHeader = (LKEventHeader *) fFrameHeaderArray -> At(0);

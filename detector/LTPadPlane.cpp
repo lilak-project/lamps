@@ -406,10 +406,10 @@ bool LTPadPlane::Init()
         {
             if (padID>=0) {
                 auto pad = GetPad(padID);
-                pad -> SetCoboID(cobo);
-                pad -> SetAsadID(asad);
-                pad -> SetAgetID(aget);
-                pad -> SetChannelID(channelID);
+                pad -> SetCobo(cobo);
+                pad -> SetAsad(asad);
+                pad -> SetAget(aget);
+                pad -> SetChan(channelID);
                 padID = FindPadID(x,y); // XXX
                 fMapCAACToPadID[cobo][asad][aget][channelID] = padID;
                 //e_cout << "input " << cobo << " " << aget << " " << asad << " " << channelID << " " << fMapCAACToPadID[cobo][aget][asad][channelID]  << endl;
@@ -700,14 +700,14 @@ void LTPadPlane::FillDataToHist(Option_t* option)
     optionString.ToLower();
     lk_info << "Filling " << optionString << " (" << currentEventID << ")" << endl;
 
-    LKPhysicalPad *pad = nullptr;
+    LKPad *pad = nullptr;
     TString title;
 
     if (optionString.Index("caac")==0) {
         title = "caac";
         int maxCAAC = 0;
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
+        while ((pad = (LKPad *) nextRawData())) {
             auto caac = pad -> GetCAAC();
             if (caac>maxCAAC) maxCAAC = caac;
             double x = pad -> GetI();
@@ -722,36 +722,36 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         fEnergyMax = fMaxCobo;
         title = "cobo";
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
-            fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetCoboID());
-            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetCoboID());
+        while ((pad = (LKPad *) nextRawData())) {
+            fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetCobo());
+            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetCobo());
         }
     }
     else if (optionString.Index("asad")==0) {
         fEnergyMax = 4;
         title = "asad";
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
-            fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetAsadID());
-            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetAsadID());
+        while ((pad = (LKPad *) nextRawData())) {
+            fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetAsad());
+            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetAsad());
         }
     }
     else if (optionString.Index("aget")==0) {
         fEnergyMax = 4;
         title = "aget";
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
-            fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetAgetID());
-            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetAgetID());
+        while ((pad = (LKPad *) nextRawData())) {
+            fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetAget());
+            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetAget());
         }
     }
     else if (optionString.Index("chan")==0) {
         fEnergyMax = 70;
         title = "chan";
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
-            fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetChannelID());
-            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetChannelID());
+        while ((pad = (LKPad *) nextRawData())) {
+            fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetChan());
+            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetChan());
         }
     }
 
@@ -759,16 +759,16 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         fEnergyMax = 100;
         title = "section";
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
+        while ((pad = (LKPad *) nextRawData())) {
             fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetSection());
-            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetChannelID());
+            fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetChan());
         }
     }
     else if (optionString.Index("layer")==0) {
         fEnergyMax = 100;
         title = "layer";
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
+        while ((pad = (LKPad *) nextRawData())) {
             fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetLayer());
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetLayer());
         }
@@ -777,7 +777,7 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         fEnergyMax = 100;
         title = "row";
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
+        while ((pad = (LKPad *) nextRawData())) {
             fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetRow());
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetRow());
         }
@@ -787,7 +787,7 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         fEnergyMax = 100;
         title = "id";
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
+        while ((pad = (LKPad *) nextRawData())) {
             fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetPadID());
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetPadID());
         }
@@ -796,7 +796,7 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         fEnergyMax = 10;
         title = "nhit";
         TIter nextRawData(fChannelArray);
-        while ((pad = (LKPhysicalPad *) nextRawData())) {
+        while ((pad = (LKPad *) nextRawData())) {
             fHistPadPlane -> Fill(pad->GetI(),pad->GetJ(),pad->GetNumHits());
             fHistSectView[pad->GetSection()] -> Fill(pad->GetI(),pad->GetJ(),pad->GetNumHits());
         }
@@ -825,7 +825,7 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         {
             title = "Preview Data";
             TIter nextPad(fChannelArray);
-            while (pad = (LKPhysicalPad*) nextPad())
+            while (pad = (LKPad*) nextPad())
             {
                 auto padID = pad -> GetPadID();
                 auto idx = pad -> GetDataIndex();
@@ -865,7 +865,7 @@ void LTPadPlane::FillDataToHist(Option_t* option)
         {
             title = "Preview Data";
             TIter nextPad(fChannelArray);
-            while (pad = (LKPhysicalPad*) nextPad())
+            while (pad = (LKPad*) nextPad())
             {
                 auto padID = pad -> GetPadID();
                 auto idx = pad -> GetDataIndex();
@@ -996,7 +996,7 @@ void LTPadPlane::ClickedEventDisplay1(double xOnClick, double yOnClick)
 
     fSelPadID = padID;
 
-    auto pad = (LKPhysicalPad*) fChannelArray -> At(fSelPadID);
+    auto pad = (LKPad*) fChannelArray -> At(fSelPadID);
     if (pad==nullptr) {
         lk_error << "pad at " << fSelPadID << " is nullptr" << endl;
         return;

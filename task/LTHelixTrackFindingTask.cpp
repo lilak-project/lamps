@@ -143,7 +143,8 @@ int LTHelixTrackFindingTask::StepNewTrack()
     }
 
     Int_t idx = fTrackArray -> GetEntries();
-    fCurrentTrack = new ((*fTrackArray)[idx]) LKHelixTrack(idx);
+    //fCurrentTrack = new ((*fTrackArray)[idx]) LKHelixTrack(idx);
+    fCurrentTrack = (LKHelixTrack* ) fTrackArray -> ConstructedAt(idx);//new ((*fTrackArray)[idx]) LKHelixTrack(idx);
     fCurrentTrack -> SetReferenceAxis(fReferenceAxis);
     fCurrentTrack -> AddHit(hit);
     fGoodHits -> AddHit(hit);
